@@ -78,7 +78,7 @@ case class Game private (size: Int,
                          history: NonEmptyList[(GameAction, BoardState)]) {
   import Game._
   def currentBoard: BoardState = history.head._2
-  def nextPlayer: Player = history.last._1 match {
+  def nextPlayer: Player = history.head._1 match {
     case StartGameWithBoard(_) => White
     case a: TurnAction => if (a.player == White) Black else White
   }
