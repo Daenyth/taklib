@@ -80,7 +80,11 @@ case class Game private (size: Int,
   def currentBoard: BoardState = history.head._2
   def nextPlayer: Player = history.head._1 match {
     case StartGameWithBoard(_) => White
-    case a: TurnAction => if (a.player == White) Black else White
+    case a: TurnAction =>
+      a.player match {
+        case White => Black
+        case Black => White
+      }
   }
   def takeTurn(action: TurnAction): InvalidMove.type \/ Game =
     if (moveIsValid(action))
