@@ -2,7 +2,18 @@ package com.github.daenyth.taklib
 
 import scalaz.NonEmptyList
 
-case class BoardState(size: Int, boardPositions: Vector[Vector[BoardPosition]])
+object BoardState {
+  /** Build a board from Tak Positional System; None if tps is invalid */
+  def fromTPS(tps: String): Option[BoardState] = ???
+
+  def empty(size: Int): BoardState = BoardState(size, Vector.fill(size, size)(EmptySpace))
+}
+case class BoardState(size: Int, boardPositions: Vector[Vector[BoardPosition]]) {
+  def applyAction(action: TurnAction): BoardState = ???
+
+  def hasIndex(index: BoardIndex): Boolean =
+    index.rank < size && index.rank >= 0 && index.file < size && index.file >= 0
+}
 
 sealed trait BoardPosition
 case object EmptySpace extends BoardPosition
