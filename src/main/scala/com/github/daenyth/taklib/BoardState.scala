@@ -13,6 +13,9 @@ case class BoardState(size: Int, boardPositions: Vector[Vector[BoardPosition]]) 
 
   def hasIndex(index: BoardIndex): Boolean =
     index.rank < size && index.rank >= 0 && index.file < size && index.file >= 0
+
+  /** Serialize board state to Tak Positional System */
+  def toTPS: String = ???
 }
 
 sealed trait BoardPosition

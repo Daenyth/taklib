@@ -4,13 +4,17 @@ import scalaz.{NonEmptyList, \/}
 import scalaz.syntax.either._
 
 // Rank is normally 'a'..'e'/'f' depending on board size, Int here for convenience.
-case class BoardIndex(rank: Int, file: Int)
+case class BoardIndex(rank: Int, file: Int) {
+  // This will throw for larger than 8x8 but that's not even defined in the rules anyway
+  private val rankNames = Vector('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h')
+  def name: String = s"${rankNames(rank - 1)}$file"
+}
 
-sealed trait MoveDirection
-case object Left extends MoveDirection
-case object Right extends MoveDirection
-case object Up extends MoveDirection
-case object Down extends MoveDirection
+sealed trait MoveDirection { def name: String }
+case object Left extends MoveDirection { val name = "<" }
+case object Right extends MoveDirection { val name = ">" }
+case object Up extends MoveDirection { val name = "+" }
+case object Down extends MoveDirection { val name = "-" }
 
 case object InvalidMove
 
@@ -18,6 +22,18 @@ sealed trait GameAction
 case class StartGameWithBoard(board: BoardState) extends GameAction
 sealed trait TurnAction extends GameAction {
   def player: Player
+
+  def ptn: String = this match {
+    case PlayFlat(_, at) => at.name
+    case PlayStanding(_, at) => s"S${at.name}"
+    case PlayCapstone(_, at) => s"C${at.name}"
+    case Move(_, from, direction, count, drops) =>
+      // Omit count+drops if moving whole stack
+      val num = if (drops.length > 1) count.toString else ""
+      val dropSequnce =
+        if (drops.length > 1) drops.mkString("") else ""
+      s"$num${from.name}${direction.name}$dropSequnce"
+  }
 }
 sealed trait PlayStone extends TurnAction {
   def at: BoardIndex
@@ -75,6 +91,7 @@ case class Game private (size: Int,
 
   def moveIsValid(action: TurnAction): Boolean = {
     // TODO more checks
+    action.player == nextPlayer &&
     actionIndexIsValid(currentBoard, action)
   }
 
@@ -82,4 +99,7 @@ case class Game private (size: Int,
     history.tail.toNel.map { prev =>
       this.copy(history = prev).right
     } getOrElse InvalidMove.left
+
+  /** Serialize game history to Portable Tak Notation */
+  def toPTN: String = ???
 }
