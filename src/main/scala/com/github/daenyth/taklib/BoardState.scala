@@ -13,9 +13,10 @@ object BoardState {
   def empty(size: Int): BoardState =
     BoardState(size, Vector.fill(size, size)(EmptySpace))
 
-  private def setStackAt(positions: Vector[Vector[BoardPosition]],
-                         index: BoardIndex,
-                         stack: Stack): Vector[Vector[BoardPosition]] = {
+  private def setStackAt(
+      positions: Vector[Vector[BoardPosition]],
+      index: BoardIndex,
+      stack: BoardPosition): Vector[Vector[BoardPosition]] = {
     // TODO uses lenses instead of manual indexing/updating
     val (i, j) = (index.rank - 1, index.file - 1)
     positions.updated(i, positions(i).updated(j, stack))
@@ -28,6 +29,7 @@ object BoardState {
     val currentStack = positions(i)(j)
     val newStack = currentStack match {
       case EmptySpace => stack
+      // TODO need to check that top of target space isn't a noble; if it is, InvalidMove
       case Stack(pieces) => Stack(pieces |+| stack.pieces)
     }
     setStackAt(positions, index, newStack)
@@ -73,9 +75,19 @@ case class BoardState(size: Int, boardPositions: Vector[Vector[BoardPosition]]) 
         stack.pieces.list.splitAt(stack.size - count)
       assert(movingStack.length == count)
 
+      val positionsWithoutMovedStones = setStackAt(
+        boardPositions,
+        from,
+        remainingStack.toNel.map(Stack).getOrElse(EmptySpace))
+      val newPositions = spreadStack(movingStack.toVector,
+                                     from.neighbor(direction),
+                                     drops.toList,
+                                     positionsWithoutMovedStones)
+
       BoardState(size, newPositions)
   }
-  def positionAt(index: BoardIndex) =
+
+  def positionAt(index: BoardIndex): BoardPosition =
     boardPositions(index.rank - 1)(index.file - 1)
 
   def hasIndex(index: BoardIndex): Boolean =
@@ -89,7 +101,7 @@ sealed trait BoardPosition // TODO replace family with Stack(Vector[Stone])
 case object EmptySpace extends BoardPosition
 case class Stack(pieces: NonEmptyList[Stone]) extends BoardPosition {
   def controller: Player = pieces.last.owner
-  def size = pieces.size
+  def size: Int = pieces.size
 }
 
 sealed trait Player
