@@ -8,6 +8,13 @@ case class BoardIndex(rank: Int, file: Int) {
   // This will throw for larger than 8x8 but that's not even defined in the rules anyway
   private val rankNames = Vector('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h')
   def name: String = s"${rankNames(rank - 1)}$file"
+  def neighbor(d: MoveDirection): BoardIndex =
+    d match {
+      case Left => copy(rank = rank - 1)
+      case Right => copy(rank = rank + 1)
+      case Up => copy(file = file + 1)
+      case Down => copy(file = file - 1)
+    }
 }
 
 sealed trait MoveDirection { def name: String }
@@ -35,12 +42,23 @@ sealed trait TurnAction extends GameAction {
       s"$num${from.name}${direction.name}$dropSequnce"
   }
 }
+object PlayStone {
+  def unapply(p: PlayStone): Option[(BoardIndex, Stone)] =
+    Some((p.at, p.stone))
+}
 sealed trait PlayStone extends TurnAction {
   def at: BoardIndex
+  def stone: Stone
 }
-case class PlayFlat(player: Player, at: BoardIndex) extends PlayStone
-case class PlayStanding(player: Player, at: BoardIndex) extends PlayStone
-case class PlayCapstone(player: Player, at: BoardIndex) extends PlayStone
+case class PlayFlat(player: Player, at: BoardIndex) extends PlayStone {
+  val stone = FlatStone(player)
+}
+case class PlayStanding(player: Player, at: BoardIndex) extends PlayStone {
+  val stone = StandingStone(player)
+}
+case class PlayCapstone(player: Player, at: BoardIndex) extends PlayStone {
+  val stone = Capstone(player)
+}
 case class Move(player: Player,
                 from: BoardIndex,
                 direction: MoveDirection,
