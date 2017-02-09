@@ -2,7 +2,7 @@ package com.github.daenyth.taklib
 
 import com.github.daenyth.taklib.BoardState.Checked
 
-import scalaz.{NonEmptyList, \/}
+import scalaz.{\/, NonEmptyList}
 import scalaz.syntax.either._
 
 // Rank is normally 'a'..'e'/'f' depending on board size, Int here for convenience.
@@ -79,12 +79,11 @@ case class Move(player: Player,
 }
 
 object Game {
-  def actionIndexIsValid(board: BoardState, action: TurnAction): Boolean = {
+  def actionIndexIsValid(board: BoardState, action: TurnAction): Boolean =
     action match {
       case play: PlayStone => board.hasIndex(play.at)
       case m: Move => board.hasIndex(m.from) && board.hasIndex(m.finalPosition)
     }
-  }
   def apply(size: Int): Game = {
     val b = BoardState.empty(size)
     Game(size, NonEmptyList((StartGameWithBoard(b), b)))
@@ -94,8 +93,7 @@ object Game {
 }
 
 // TODO Eventually change NEL to a tree zipper to allow for branching game history (unlimited rollback-rollforward)
-case class Game private (size: Int,
-                         history: NonEmptyList[(GameAction, BoardState)]) {
+case class Game private (size: Int, history: NonEmptyList[(GameAction, BoardState)]) {
   import Game._
   def currentBoard: BoardState = history.head._2
   def nextPlayer: Player = history.head._1 match {

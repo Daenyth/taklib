@@ -19,17 +19,13 @@ object BoardState {
   def empty(size: Int): BoardState =
     BoardState(size, Vector.fill(size, size)(Stack.empty))
 
-  private def setStackAt(positions: Board,
-                         index: BoardIndex,
-                         stack: Stack): Board = {
+  private def setStackAt(positions: Board, index: BoardIndex, stack: Stack): Board = {
     // TODO uses lenses instead of manual indexing/updating
     val (i, j) = (index.rank - 1, index.file - 1)
     positions.updated(i, positions(i).updated(j, stack))
   }
 
-  private def combineStackAt(positions: Board,
-                             index: BoardIndex,
-                             stack: Stack): Checked[Board] = {
+  private def combineStackAt(positions: Board, index: BoardIndex, stack: Stack): Checked[Board] = {
     val (i, j) = (index.rank - 1, index.file - 1)
     val currentStack = positions(i)(j)
     val newStack = currentStack match {
@@ -66,7 +62,7 @@ case class BoardState(size: Int, boardPositions: Board) {
     def spreadStack(movingStack: Vector[Stone],
                     index: BoardIndex,
                     drops: List[Int],
-                    positions: Board): Checked[Board] = {
+                    positions: Board): Checked[Board] =
       drops match {
         case Nil => positions.right
         case num :: ds =>
@@ -77,15 +73,11 @@ case class BoardState(size: Int, boardPositions: Board) {
           combined match {
             case \/-(newPositions) =>
               if (stillMoving.nonEmpty)
-                spreadStack(stillMoving,
-                  index.neighbor(m.direction),
-                  ds,
-                  newPositions)
+                spreadStack(stillMoving, index.neighbor(m.direction), ds, newPositions)
               else newPositions.right
-            case e@ -\/(_) => e
+            case e @ -\/(_) => e
           }
       }
-    }
 
     val stack = positionAt(m.from)
     val (remainingStack, movingStack) =
@@ -95,10 +87,12 @@ case class BoardState(size: Int, boardPositions: Board) {
     val positionsWithoutMovedStones =
       setStackAt(boardPositions, m.from, Stack(remainingStack))
     val finalPositions =
-      spreadStack(movingStack,
+      spreadStack(
+        movingStack,
         m.from.neighbor(m.direction),
         m.drops.toList,
-        positionsWithoutMovedStones)
+        positionsWithoutMovedStones
+      )
 
     finalPositions.map(BoardState(size, _))
   }
