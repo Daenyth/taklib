@@ -5,10 +5,13 @@ import com.github.daenyth.taklib.BoardState.Checked
 import scalaz.NonEmptyList
 import scalaz.syntax.either._
 
+object BoardIndex {
+  private[taklib] val rankNames = Vector('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h')
+}
 // Rank is normally 'a'..'e'/'f' depending on board size, Int here for convenience.
 case class BoardIndex(rank: Int, file: Int) {
+  import BoardIndex._
   // This will throw for larger than 8x8 but that's not even defined in the rules anyway
-  private val rankNames = Vector('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h')
   def name: String = s"${rankNames(rank - 1)}$file"
   def neighbor(d: MoveDirection): BoardIndex =
     d match {
