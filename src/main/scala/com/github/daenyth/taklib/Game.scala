@@ -2,7 +2,7 @@ package com.github.daenyth.taklib
 
 import com.github.daenyth.taklib.BoardState.Checked
 
-import scalaz.{\/, NonEmptyList}
+import scalaz.NonEmptyList
 import scalaz.syntax.either._
 
 // Rank is normally 'a'..'e'/'f' depending on board size, Int here for convenience.
@@ -61,6 +61,11 @@ case class PlayStanding(player: Player, at: BoardIndex) extends PlayStone {
 case class PlayCapstone(player: Player, at: BoardIndex) extends PlayStone {
   val stone = Capstone(player)
 }
+object Move {
+  def fromPtn(ptn: String): Option[Move] = {
+???
+  }
+}
 case class Move(player: Player,
                 from: BoardIndex,
                 direction: MoveDirection,
@@ -105,8 +110,11 @@ case class Game private (size: Int, history: NonEmptyList[(GameAction, BoardStat
       }
   }
 
+  def turnNumber: Int = ???
+
   def takeTurn(action: TurnAction): Checked[Game] =
     for {
+      _ <- moveIsValid(action)
       nextState <- currentBoard.applyAction(action)
       newHistory = (action, nextState) <:: history
     } yield this.copy(history = newHistory)

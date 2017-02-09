@@ -27,8 +27,8 @@ object BoardState {
 
   private def combineStackAt(positions: Board, index: BoardIndex, stack: Stack): Checked[Board] = {
     val (i, j) = (index.rank - 1, index.file - 1)
-    val currentStack = positions(i)(j)
-    val newStack = currentStack match {
+    val stackAtIdx = \/.fromTryCatchNonFatal(positions(i)(j)).leftMap(_ => InvalidMove)
+    val newStack: Checked[Stack] = stackAtIdx.flatMap {
       case Stack(Vector()) => stack.right
       case Stack(pieces) =>
         pieces.last match {
@@ -36,7 +36,7 @@ object BoardState {
           case FlatStone(_) => Stack(pieces |+| stack.pieces).right
           case StandingStone(owner) =>
             stack match {
-              case Stack(Vector(c @ Capstone(_))) =>
+              case Stack(Vector(c@Capstone(_))) =>
                 Stack(pieces.init |+| Vector(FlatStone(owner), c)).right
               case _ => InvalidMove.left
             }
@@ -57,7 +57,7 @@ case class BoardState(size: Int, boardPositions: Board) {
   }
 
   // TODO test this
-  private def doMoveAction(m: Move): InvalidMove.type \/ BoardState = {
+  private[taklib] def doMoveAction(m: Move): InvalidMove.type \/ BoardState = {
     @tailrec
     def spreadStack(movingStack: Vector[Stone],
                     index: BoardIndex,
@@ -79,10 +79,10 @@ case class BoardState(size: Int, boardPositions: Board) {
           }
       }
 
-    val stack = positionAt(m.from)
+    val stack = stackAt(m.from)
     val (remainingStack, movingStack) =
       stack.pieces.splitAt(stack.size - m.count)
-    assert(movingStack.length == m.count)
+    assert(movingStack.length == m.count, s"moving: $movingStack, remaining: $remainingStack")
 
     val positionsWithoutMovedStones =
       setStackAt(boardPositions, m.from, Stack(remainingStack))
@@ -97,7 +97,7 @@ case class BoardState(size: Int, boardPositions: Board) {
     finalPositions.map(BoardState(size, _))
   }
 
-  def positionAt(index: BoardIndex): Stack =
+  def stackAt(index: BoardIndex): Stack =
     boardPositions(index.rank - 1)(index.file - 1)
 
   def hasIndex(index: BoardIndex): Boolean =
