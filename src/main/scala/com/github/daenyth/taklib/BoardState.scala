@@ -3,10 +3,10 @@ package com.github.daenyth.taklib
 import com.github.daenyth.taklib.BoardState._
 
 import scala.annotation.tailrec
-import scalaz.{-\/, \/, \/-}
 import scalaz.std.vector._
 import scalaz.syntax.either._
 import scalaz.syntax.monoid._
+import scalaz.{-\/, \/, \/-}
 
 object BoardState {
 
@@ -56,6 +56,19 @@ case class BoardState(size: Int, boardPositions: Board) {
     case m: Move => doMoveAction(m)
   }
 
+  @tailrec
+  final def applyActions(a: TurnAction, as: TurnAction*): Checked[BoardState] =
+    // Explicit match instead of map/flatmap to appease @tailrec
+    applyAction(a) match {
+      case e @ -\/(_) => e
+      case s @ \/-(newState) =>
+        as.toList match {
+        case Nil => s
+//        case oneMoreMove :: Nil => newState.applyAction(oneMoreMove)
+        case nextMove :: moreMoves => newState.applyActions(nextMove, moreMoves:_*)
+      }
+    }
+
   // TODO test this
   private[taklib] def doMoveAction(m: Move): InvalidMove.type \/ BoardState = {
     @tailrec
@@ -79,26 +92,34 @@ case class BoardState(size: Int, boardPositions: Board) {
           }
       }
 
-    val stack = stackAt(m.from)
-    val (remainingStack, movingStack) =
-      stack.pieces.splitAt(stack.size - m.count)
-    assert(movingStack.length == m.count, s"moving: $movingStack, remaining: $remainingStack")
+    def moveStack(stack: Stack) = {
+      val (remainingStack, movingStack) =
+        stack.pieces.splitAt(stack.size - m.count)
+      assert(movingStack.length == m.count, s"moving: $movingStack, remaining: $remainingStack, inStack: $stack")
 
-    val positionsWithoutMovedStones =
-      setStackAt(boardPositions, m.from, Stack(remainingStack))
-    val finalPositions =
-      spreadStack(
-        movingStack,
-        m.from.neighbor(m.direction),
-        m.drops.toList,
-        positionsWithoutMovedStones
-      )
+      val positionsWithoutMovedStones =
+        setStackAt(boardPositions, m.from, Stack(remainingStack))
+      val finalPositions =
+        spreadStack(
+          movingStack,
+          m.from.neighbor(m.direction),
+          m.drops.toList,
+          positionsWithoutMovedStones
+        )
+      finalPositions
+    }
 
-    finalPositions.map(BoardState(size, _))
+    // todo clean duplication in moveStack/spreadStack, maybe prepend an extra drop on
+    for {
+      _ <- if (m.count <= size) ().right else InvalidMove.left
+      stack <- stackAt(m.from)
+      _ <- if (stack.nonEmpty) ().right else InvalidMove.left
+      finalPositions <- moveStack(stack)
+    } yield BoardState(size, finalPositions)
   }
 
-  def stackAt(index: BoardIndex): Stack =
-    boardPositions(index.rank - 1)(index.file - 1)
+  def stackAt(index: BoardIndex): Checked[Stack] =
+    \/.fromTryCatchNonFatal(boardPositions(index.rank - 1)(index.file - 1)).leftMap(_ => InvalidMove)
 
   def hasIndex(index: BoardIndex): Boolean =
     index.rank < size && index.rank >= 0 && index.file < size && index.file >= 0
@@ -115,6 +136,7 @@ case class Stack(pieces: Vector[Stone]) {
   def controller: Player = pieces.last.owner
   def size: Int = pieces.size
   def isEmpty: Boolean = pieces.isEmpty
+  def nonEmpty: Boolean = !isEmpty
 }
 
 sealed trait Player

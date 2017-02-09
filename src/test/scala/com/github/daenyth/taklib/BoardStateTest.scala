@@ -11,21 +11,28 @@ class BoardStateTest extends FlatSpec with Matchers with DisjunctionValues {
     val board = BoardState.empty(5)
     val idx = BoardIndex(1, 1)
     val neighbor = idx.neighbor(Right)
+    val finalBoard = board.applyActions(
+      PlayFlat(White, idx),
+      PlayFlat(Black, neighbor),
+      Move(White, idx, Right, 1, Vector(1))
+    )
     val result = for {
-      a <- board.applyAction(PlayFlat(White, idx))
-      b <- a.applyAction(PlayFlat(Black, neighbor))
-      c <- b.applyAction(Move(White, idx, Right, 1, Vector(1)))
-    } yield (c.stackAt(idx), c.stackAt(neighbor))
-    result.value shouldBe ((Stack.empty, Stack(Vector(FlatStone(Black), FlatStone(White)))))
+      b <- finalBoard
+      a1 <- b.stackAt(idx)
+      a2 <- b.stackAt(neighbor)
+    } yield (a1, a2)
+    val (a1, a2) = result.value
+    a1 shouldBe Stack.empty
+    a2 shouldBe Stack(Vector(FlatStone(Black), FlatStone(White)))
   }
 
   it should "reject moving off the board" in {
     val board = BoardState.empty(5)
     val idx = BoardIndex(1, 1)
-    val result = for {
-      a <- board.applyAction(PlayFlat(White, idx))
-      b <- a.applyAction(Move(White, idx, Left, 1, Vector(1)))
-    } yield b
+    val result = board.applyActions(
+      PlayFlat(White, idx),
+      Move(White, idx, Left, 1, Vector(1))
+    )
     result shouldBe 'left
   }
 
