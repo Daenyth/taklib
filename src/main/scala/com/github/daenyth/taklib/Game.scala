@@ -1,5 +1,7 @@
 package com.github.daenyth.taklib
 
+import com.github.daenyth.taklib.BoardState.Checked
+
 import scalaz.{NonEmptyList, \/}
 import scalaz.syntax.either._
 
@@ -87,7 +89,7 @@ object Game {
     val b = BoardState.empty(size)
     Game(size, NonEmptyList((StartGameWithBoard(b), b)))
   }
-  def apply(board: BoardState) =
+  def apply(board: BoardState): Game =
     Game(board.size, NonEmptyList((StartGameWithBoard(board), board)))
 }
 
@@ -104,20 +106,19 @@ case class Game private (size: Int,
         case Black => White
       }
   }
-  def takeTurn(action: TurnAction): InvalidMove.type \/ Game =
-    if (moveIsValid(action))
-      this
-        .copy(history = (action, currentBoard.applyAction(action)) <:: history)
-        .right
+
+  def takeTurn(action: TurnAction): Checked[Game] =
+    for {
+      nextState <- currentBoard.applyAction(action)
+      newHistory = (action, nextState) <:: history
+    } yield this.copy(history = newHistory)
+
+  def moveIsValid(action: TurnAction): Checked[Unit] =
+    if (action.player == nextPlayer && actionIndexIsValid(currentBoard, action))
+      ().right
     else InvalidMove.left
 
-  def moveIsValid(action: TurnAction): Boolean = {
-    // TODO more checks
-    action.player == nextPlayer &&
-    actionIndexIsValid(currentBoard, action)
-  }
-
-  def undo: (InvalidMove.type \/ Game) =
+  def undo: Checked[Game] =
     history.tail.toNel.map { prev =>
       this.copy(history = prev).right
     } getOrElse InvalidMove.left
