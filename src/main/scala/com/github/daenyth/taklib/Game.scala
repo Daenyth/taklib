@@ -33,18 +33,25 @@ case object InvalidMove
 sealed trait GameAction
 case class StartGameWithBoard(board: BoardState) extends GameAction
 sealed trait TurnAction extends GameAction {
-  def player: Player
+  def player: Player  // TODO maybe get rid of this - makes ptn parsing hard
 
   def ptn: String = this match {
     case PlayFlat(_, at) => at.name
     case PlayStanding(_, at) => s"S${at.name}"
     case PlayCapstone(_, at) => s"C${at.name}"
     case Move(_, from, direction, count, drops) =>
-      // Omit count+drops if moving whole stack
-      val num = if (drops.length > 1) count.toString else ""
-      val dropSequnce =
-        if (drops.length > 1) drops.mkString("") else ""
-      s"$num${from.name}${direction.name}$dropSequnce"
+      // Omit count+drops if moving whole stack or one piece
+      val num =
+        drops match {
+          case Some(ds) if ds.length > 1 => count.map(_.toString).getOrElse("")
+          case _ => ""
+        }
+      val dropSequence =
+        drops match {
+          case Some(ds) if ds.length > 1 => ds.mkString("")
+          case _ => ""
+        }
+      s"$num${from.name}${direction.name}$dropSequence"
   }
 }
 object PlayStone {
@@ -65,18 +72,16 @@ case class PlayCapstone(player: Player, at: BoardIndex) extends PlayStone {
   val stone = Capstone(player)
 }
 object Move {
-  def fromPtn(ptn: String): Option[Move] = {
-???
-  }
+  def fromPtn(ptn: String): Option[Move] = ???
 }
 case class Move(player: Player,
                 from: BoardIndex,
                 direction: MoveDirection,
-                count: Int,
-                drops: Vector[Int])
+                count: Option[Int],
+                drops: Option[Vector[Int]])
     extends TurnAction {
   def finalPosition: BoardIndex = {
-    val moveDistance = drops.length
+    val moveDistance = drops.map(_.length).getOrElse(1)
     direction match {
       case Left => from.copy(rank = from.rank - moveDistance)
       case Right => from.copy(rank = from.rank + moveDistance)

@@ -92,10 +92,10 @@ case class BoardState(size: Int, boardPositions: Board) {
           }
       }
 
-    def moveStack(stack: Stack) = {
+    def moveStack(stack: Stack, count: Int) = {
       val (remainingStack, movingStack) =
-        stack.pieces.splitAt(stack.size - m.count)
-      assert(movingStack.length == m.count, s"moving: $movingStack, remaining: $remainingStack, inStack: $stack")
+        stack.pieces.splitAt(stack.size - count)
+      assert(movingStack.length == count, s"moving: $movingStack, remaining: $remainingStack, inStack: $stack")
 
       val positionsWithoutMovedStones =
         setStackAt(boardPositions, m.from, Stack(remainingStack))
@@ -103,7 +103,7 @@ case class BoardState(size: Int, boardPositions: Board) {
         spreadStack(
           movingStack,
           m.from.neighbor(m.direction),
-          m.drops.toList,
+          m.drops.getOrElse(Vector(count)).toList,
           positionsWithoutMovedStones
         )
       finalPositions
@@ -111,10 +111,11 @@ case class BoardState(size: Int, boardPositions: Board) {
 
     // todo clean duplication in moveStack/spreadStack, maybe prepend an extra drop on
     for {
-      _ <- if (m.count <= size) ().right else InvalidMove.left
       stack <- stackAt(m.from)
+      count = m.count.getOrElse(stack.size)
+      _ <- if (count <= size) ().right else InvalidMove.left
       _ <- if (stack.nonEmpty) ().right else InvalidMove.left
-      finalPositions <- moveStack(stack)
+      finalPositions <- moveStack(stack, count)
     } yield BoardState(size, finalPositions)
   }
 

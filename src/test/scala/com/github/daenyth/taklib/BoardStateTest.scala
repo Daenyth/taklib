@@ -14,7 +14,7 @@ class BoardStateTest extends FlatSpec with Matchers with DisjunctionValues {
     val finalBoard = board.applyActions(
       PlayFlat(White, idx),
       PlayFlat(Black, neighbor),
-      Move(White, idx, Right, 1, Vector(1))
+      Move(White, idx, Right, None, None)
     )
     val result = for {
       b <- finalBoard
@@ -31,7 +31,7 @@ class BoardStateTest extends FlatSpec with Matchers with DisjunctionValues {
     val idx = BoardIndex(1, 1)
     val result = board.applyActions(
       PlayFlat(White, idx),
-      Move(White, idx, Left, 1, Vector(1))
+      Move(White, idx, Left, Some(1), Some(Vector(1)))
     )
     result shouldBe 'left
   }
