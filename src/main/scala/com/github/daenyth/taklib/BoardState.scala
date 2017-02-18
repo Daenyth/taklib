@@ -1,14 +1,14 @@
 package com.github.daenyth.taklib
 
 
+import com.github.daenyth.taklib.BoardState._
+import com.github.daenyth.taklib.BooleanOps._
+
 import scala.annotation.tailrec
 import scalaz.std.vector._
 import scalaz.syntax.either._
 import scalaz.syntax.monoid._
 import scalaz.{-\/, \/, \/-}
-
-import BooleanOps._
-import BoardState._
 
 object BoardState {
 
@@ -129,8 +129,6 @@ case class BoardState(size: Int, boardPositions: Board) {
 
   /** Serialize board state to Tak Positional System */
   def toTPS: String = ???
-
-  def winner: Option[GameEndResult] = ???
 }
 
 
@@ -159,13 +157,19 @@ object Stack {
   def of(s: Stone) = Stack(Vector(s))
 }
 case class Stack(pieces: Vector[Stone]) {
-  def controller: Player = pieces.last.owner
+  def controller: Option[Player] = top.map(_.owner)
+  def top: Option[Stone] = pieces.lastOption
   def size: Int = pieces.size
   def isEmpty: Boolean = pieces.isEmpty
   def nonEmpty: Boolean = !isEmpty
 }
 
-sealed trait Player
+sealed trait Player {
+  def fold[A](ifBlack: => A, ifWhite: => A): A = this match {
+    case Black => ifBlack
+    case White => ifWhite
+  }
+}
 case object Black extends Player
 case object White extends Player
 

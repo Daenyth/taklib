@@ -3,7 +3,7 @@ package com.github.daenyth.taklib
 import org.scalatest.{FlatSpec, Matchers}
 import org.typelevel.scalatest.DisjunctionValues
 
-class BoardStateTest extends FlatSpec with Matchers with DisjunctionValues {
+class MoveTest extends FlatSpec with Matchers with DisjunctionValues {
 
   behavior of "BoardState"
 
