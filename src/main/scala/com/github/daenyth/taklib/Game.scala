@@ -6,91 +6,13 @@ import BooleanOps._
 import scalaz.NonEmptyList
 import scalaz.syntax.either._
 
-object BoardIndex {
-  private[taklib] val rankNames = Vector('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h')
-}
-// Rank is normally 'a'..'e'/'f' depending on board size, Int here for convenience.
-case class BoardIndex(rank: Int, file: Int) {
-  import BoardIndex._
-  // This will throw for larger than 8x8 but that's not even defined in the rules anyway
-  def name: String = s"${rankNames(rank - 1)}$file"
-  def neighbor(d: MoveDirection): BoardIndex =
-    d match {
-      case Left => copy(rank = rank - 1)
-      case Right => copy(rank = rank + 1)
-      case Up => copy(file = file + 1)
-      case Down => copy(file = file - 1)
-    }
-}
 
-sealed trait MoveDirection { def name: String }
-case object Left extends MoveDirection { val name = "<" }
-case object Right extends MoveDirection { val name = ">" }
-case object Up extends MoveDirection { val name = "+" }
-case object Down extends MoveDirection { val name = "-" }
 
-case object InvalidMove
-
-sealed trait GameAction
-case class StartGameWithBoard(board: BoardState) extends GameAction
-sealed trait TurnAction extends GameAction {
-  def player: Player // TODO maybe get rid of this - makes ptn parsing hard
-
-  def ptn: String = this match {
-    case PlayFlat(_, at) => at.name
-    case PlayStanding(_, at) => s"S${at.name}"
-    case PlayCapstone(_, at) => s"C${at.name}"
-    case Move(_, from, direction, count, drops) =>
-      // Omit count+drops if moving whole stack or one piece
-      val num =
-        drops match {
-          case Some(ds) if ds.length > 1 => count.map(_.toString).getOrElse("")
-          case _ => ""
-        }
-      val dropSequence =
-        drops match {
-          case Some(ds) if ds.length > 1 => ds.mkString("")
-          case _ => ""
-        }
-      s"$num${from.name}${direction.name}$dropSequence"
-  }
-}
-object PlayStone {
-  def unapply(p: PlayStone): Option[(BoardIndex, Stone)] =
-    Some((p.at, p.stone))
-}
-sealed trait PlayStone extends TurnAction {
-  def at: BoardIndex
-  def stone: Stone
-}
-case class PlayFlat(player: Player, at: BoardIndex) extends PlayStone {
-  val stone = FlatStone(player)
-}
-case class PlayStanding(player: Player, at: BoardIndex) extends PlayStone {
-  val stone = StandingStone(player)
-}
-case class PlayCapstone(player: Player, at: BoardIndex) extends PlayStone {
-  val stone = Capstone(player)
-}
-object Move {
-  def fromPtn(ptn: String): Option[Move] = ???
-}
-case class Move(player: Player,
-                from: BoardIndex,
-                direction: MoveDirection,
-                count: Option[Int],
-                drops: Option[Vector[Int]])
-    extends TurnAction {
-  def finalPosition: BoardIndex = {
-    val moveDistance = drops.map(_.length).getOrElse(1)
-    direction match {
-      case Left => from.copy(rank = from.rank - moveDistance)
-      case Right => from.copy(rank = from.rank + moveDistance)
-      case Up => from.copy(file = from.file + moveDistance)
-      case Down => from.copy(file = from.file - moveDistance)
-    }
-  }
-}
+sealed trait GameEndResult
+case class RoadWin(player: Player) extends GameEndResult
+case class FlatWin(player: Player) extends GameEndResult
+case object DoubleRoad extends GameEndResult
+case object Draw
 
 object Game {
   def actionIndexIsValid(board: BoardState, action: TurnAction): Boolean =

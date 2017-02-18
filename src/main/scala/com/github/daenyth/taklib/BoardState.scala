@@ -129,7 +129,30 @@ case class BoardState(size: Int, boardPositions: Board) {
 
   /** Serialize board state to Tak Positional System */
   def toTPS: String = ???
+
+  def winner: Option[GameEndResult] = ???
 }
+
+
+object BoardIndex {
+  private[taklib] val rankNames = Vector('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h')
+}
+// Rank is normally 'a'..'e'/'f' depending on board size, Int here for convenience.
+case class BoardIndex(rank: Int, file: Int) {
+  import BoardIndex._
+  // This will throw for larger than 8x8 but that's not even defined in the rules anyway
+  def name: String = s"${rankNames(rank - 1)}$file"
+  def neighbor(d: MoveDirection): BoardIndex =
+    d match {
+      case Left => copy(rank = rank - 1)
+      case Right => copy(rank = rank + 1)
+      case Up => copy(file = file + 1)
+      case Down => copy(file = file - 1)
+    }
+  def allNeighbors(boardSize: Int): List[BoardIndex] = ???
+}
+
+
 
 object Stack {
   val empty = Stack(Vector.empty[Stone])
