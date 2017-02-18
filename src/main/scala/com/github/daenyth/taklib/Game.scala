@@ -13,21 +13,32 @@ import scalaz.syntax.either._
 import scalaz.syntax.foldable._
 import scalaz.syntax.order._
 import scalaz.syntax.semigroup._
-import scalaz.{NonEmptyList, Semigroup}
+import scalaz.{Equal, NonEmptyList, Semigroup}
 
 object GameEndResult {
-  implicit val gerInstance: Semigroup[GameEndResult] = new Semigroup[GameEndResult] {
-    override def append(f1: GameEndResult, f2: => GameEndResult) = (f1, f2) match {
-      case (DoubleRoad, _) => DoubleRoad
-      case (_, DoubleRoad) => DoubleRoad
-      case (Draw, _) => Draw
-      case (_, Draw) => Draw
-      case (r @ RoadWin(p1), RoadWin(p2)) => if (p1 == p2) r else DoubleRoad
-      case (f @ FlatWin(p1), FlatWin(p2)) => if (p1 == p2) f else Draw
-      case (r: RoadWin, _: FlatWin) => r
-      case (_: FlatWin, r: RoadWin) => r
+  implicit val gerInstance: Semigroup[GameEndResult] with Equal[GameEndResult] =
+    new Semigroup[GameEndResult] with Equal[GameEndResult] {
+      override def append(f1: GameEndResult, f2: => GameEndResult) = (f1, f2) match {
+        case (DoubleRoad, _) => DoubleRoad
+        case (_, DoubleRoad) => DoubleRoad
+        case (Draw, r: RoadWin) => r
+        case (r: RoadWin, Draw) => r
+        case (r @ RoadWin(p1), RoadWin(p2)) => if (p1 == p2) r else DoubleRoad
+        case (f @ FlatWin(p1), FlatWin(p2)) => if (p1 == p2) f else Draw
+        case (Draw, _) => Draw
+        case (_, Draw) => Draw
+        case (r: RoadWin, _: FlatWin) => r
+        case (_: FlatWin, r: RoadWin) => r
+      }
+
+      override def equal(a1: GameEndResult, a2: GameEndResult): Boolean = (a1, a2) match {
+        case (DoubleRoad, DoubleRoad) => true
+        case (Draw, Draw) => true
+        case (RoadWin(p1), RoadWin(p2)) => p1 == p2
+        case (FlatWin(p1), FlatWin(p2)) => p1 == p2
+        case _ => false
+      }
     }
-  }
 }
 sealed trait GameEndResult
 sealed trait RoadResult extends GameEndResult

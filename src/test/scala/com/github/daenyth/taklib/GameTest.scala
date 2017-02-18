@@ -2,9 +2,8 @@ package com.github.daenyth.taklib
 
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalatest.{FlatSpec, Matchers}
-import org.scalatest.prop.GeneratorDrivenPropertyChecks
 
-import scalaz.syntax.semigroup._
+import scalaz.scalacheck.ScalazProperties
 
 object GameTest {
   implicit val arbRoad: Arbitrary[RoadWin] = Arbitrary { Gen.oneOf(White, Black).map(RoadWin) }
@@ -19,13 +18,11 @@ object GameTest {
   }
 }
 
-class GameTest extends FlatSpec with Matchers with GeneratorDrivenPropertyChecks {
+class GameTest extends FlatSpec with Matchers with PropertyCheckers {
   import GameTest._
 
   "GameEndResult" should "be a lawful semigroup" in {
-    forAll { (g1: GameEndResult, g2: GameEndResult, g3: GameEndResult) =>
-      (g1 |+| (g2 |+| g3)) shouldEqual ((g1 |+| g2) |+| g3)
-    }
+    check(ScalazProperties.semigroup.laws[GameEndResult])
   }
 
   "A full board" should "have a game end result" in {

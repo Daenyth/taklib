@@ -31,5 +31,6 @@ libraryDependencies ++= Seq(
 
   "org.scalatest" %% "scalatest" % "3.0.1" % "test",
   "org.scalacheck" %% "scalacheck" % "1.13.4" % "test",
-  "org.typelevel" %% "scalaz-scalatest" % "1.1.1" % "test"
+  "org.typelevel" %% "scalaz-scalatest" % "1.1.1" % "test",
+  "org.scalaz" %% "scalaz-scalacheck-binding" % "7.3.0-M9" % "test"
 )
