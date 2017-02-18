@@ -1,12 +1,14 @@
 package com.github.daenyth.taklib
 
-import com.github.daenyth.taklib.BoardState._
 
 import scala.annotation.tailrec
 import scalaz.std.vector._
 import scalaz.syntax.either._
 import scalaz.syntax.monoid._
 import scalaz.{-\/, \/, \/-}
+
+import BooleanOps._
+import BoardState._
 
 object BoardState {
 
@@ -113,8 +115,8 @@ case class BoardState(size: Int, boardPositions: Board) {
     for {
       stack <- stackAt(m.from)
       count = m.count.getOrElse(stack.size)
-      _ <- if (count <= size) ().right else InvalidMove.left
-      _ <- if (stack.nonEmpty) ().right else InvalidMove.left
+      _ <- (count <= size).guard(InvalidMove)
+      _ <- stack.nonEmpty.guard(InvalidMove)
       finalPositions <- moveStack(stack, count)
     } yield BoardState(size, finalPositions)
   }

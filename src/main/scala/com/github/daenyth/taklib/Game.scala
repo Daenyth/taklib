@@ -1,6 +1,7 @@
 package com.github.daenyth.taklib
 
-import com.github.daenyth.taklib.BoardState.Checked
+import BoardState.Checked
+import BooleanOps._
 
 import scalaz.NonEmptyList
 import scalaz.syntax.either._
@@ -33,7 +34,7 @@ case object InvalidMove
 sealed trait GameAction
 case class StartGameWithBoard(board: BoardState) extends GameAction
 sealed trait TurnAction extends GameAction {
-  def player: Player  // TODO maybe get rid of this - makes ptn parsing hard
+  def player: Player // TODO maybe get rid of this - makes ptn parsing hard
 
   def ptn: String = this match {
     case PlayFlat(_, at) => at.name
@@ -128,9 +129,10 @@ case class Game private (size: Int, history: NonEmptyList[(GameAction, BoardStat
     } yield this.copy(history = newHistory)
 
   def moveIsValid(action: TurnAction): Checked[Unit] =
-    if (action.player == nextPlayer && actionIndexIsValid(currentBoard, action))
-      ().right
-    else InvalidMove.left
+    (
+      action.player == nextPlayer
+        && actionIndexIsValid(currentBoard, action)
+    ).guard(InvalidMove)
 
   def undo: Checked[Game] =
     history.tail.toNel.map { prev =>
