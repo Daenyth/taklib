@@ -1,10 +1,10 @@
 package com.github.daenyth.taklib
 
-
 import com.github.daenyth.taklib.BoardState._
 import com.github.daenyth.taklib.BooleanOps._
 
 import scala.annotation.tailrec
+import scala.collection.immutable.IndexedSeq
 import scalaz.std.vector._
 import scalaz.syntax.either._
 import scalaz.syntax.monoid._
@@ -43,7 +43,7 @@ object BoardState {
           case FlatStone(_) => Stack(pieces |+| stack.pieces).right
           case StandingStone(owner) =>
             stack match {
-              case Stack(Vector(c@Capstone(_))) =>
+              case Stack(Vector(c @ Capstone(_))) =>
                 Stack(pieces.init |+| Vector(FlatStone(owner), c)).right
               case _ => InvalidMove.left
             }
@@ -70,10 +70,9 @@ case class BoardState(size: Int, boardPositions: Board) {
       case e @ -\/(_) => e
       case s @ \/-(newState) =>
         as.toList match {
-        case Nil => s
-//        case oneMoreMove :: Nil => newState.applyAction(oneMoreMove)
-        case nextMove :: moreMoves => newState.applyActions(nextMove, moreMoves:_*)
-      }
+          case Nil => s
+          case nextMove :: moreMoves => newState.applyActions(nextMove, moreMoves: _*)
+        }
     }
 
   // TODO test this
@@ -102,7 +101,10 @@ case class BoardState(size: Int, boardPositions: Board) {
     def moveStack(stack: Stack, count: Int) = {
       val (remainingStack, movingStack) =
         stack.pieces.splitAt(stack.size - count)
-      assert(movingStack.length == count, s"moving: $movingStack, remaining: $remainingStack, inStack: $stack")
+      assert(
+        movingStack.length == count,
+        s"moving: $movingStack, remaining: $remainingStack, inStack: $stack"
+      )
 
       val positionsWithoutMovedStones =
         setStackAt(boardPositions, m.from, Stack(remainingStack))
@@ -127,7 +129,8 @@ case class BoardState(size: Int, boardPositions: Board) {
   }
 
   def stackAt(index: BoardIndex): Checked[Stack] =
-    \/.fromTryCatchNonFatal(boardPositions(index.rank - 1)(index.file - 1)).leftMap(_ => InvalidMove)
+    \/.fromTryCatchNonFatal(boardPositions(index.rank - 1)(index.file - 1))
+      .leftMap(_ => InvalidMove)
 
   def hasIndex(index: BoardIndex): Boolean =
     index.rank < size && index.rank >= 0 && index.file < size && index.file >= 0
@@ -136,13 +139,17 @@ case class BoardState(size: Int, boardPositions: Board) {
   def toTPS: String = ???
 }
 
-
 object BoardIndex {
   private[taklib] val rankNames = Vector('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h')
 }
 // Rank is normally 'a'..'e'/'f' depending on board size, Int here for convenience.
 case class BoardIndex(rank: Int, file: Int) {
-  def oppositeIndexes(size: Int): List[BoardIndex] = ???
+  def oppositeIndexes(boardSize: Int): IndexedSeq[BoardIndex] =
+    if (rank == 1) for (n <- 1 to boardSize) yield BoardIndex(boardSize, n)
+    else if (file == 1) for (n <- 1 to boardSize) yield BoardIndex(n, boardSize)
+    else if (rank == boardSize) for (n <- 1 to boardSize) yield BoardIndex(1, n)
+    else if (file == boardSize) for (n <- 1 to boardSize) yield BoardIndex(n, 1)
+    else Vector.empty
 
   import BoardIndex._
   // This will throw for larger than 8x8 but that's not even defined in the rules anyway
@@ -154,10 +161,11 @@ case class BoardIndex(rank: Int, file: Int) {
       case Up => copy(file = file + 1)
       case Down => copy(file = file - 1)
     }
-  def allNeighbors(boardSize: Int): List[BoardIndex] = ???
+  def allNeighbors(boardSize: Int): List[BoardIndex] =
+    List(neighbor(Left), neighbor(Right), neighbor(Up), neighbor(Down)).filter { idx =>
+      idx.rank >= 1 && idx.rank <= boardSize && idx.file >= 1 && idx.file <= boardSize
+    }
 }
-
-
 
 object Stack {
   val empty = Stack(Vector.empty[Stone])
