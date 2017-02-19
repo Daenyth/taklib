@@ -8,6 +8,7 @@ import scala.collection.immutable.IndexedSeq
 import scalaz.std.vector._
 import scalaz.syntax.either._
 import scalaz.syntax.monoid._
+import scalaz.syntax.std.option._
 import scalaz.{-\/, \/, \/-}
 
 object BoardState {
@@ -62,6 +63,9 @@ case class BoardState(size: Int, boardPositions: Board) {
       BoardState(size, newPositions).right
     case m: Move => doMoveAction(m)
   }
+
+  def applyActions(actions: Seq[TurnAction]): Checked[BoardState] =
+    actions.headOption.toRightDisjunction(InvalidMove).flatMap(a => applyActions(a, actions.tail:_*))
 
   @tailrec
   final def applyActions(a: TurnAction, as: TurnAction*): Checked[BoardState] =

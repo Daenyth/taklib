@@ -2,6 +2,7 @@ package com.github.daenyth.taklib
 
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalatest.{FlatSpec, Matchers, OptionValues}
+import org.typelevel.scalatest.DisjunctionValues
 
 import scalaz.scalacheck.ScalazProperties
 
@@ -18,7 +19,7 @@ object GameTest {
   }
 }
 
-class GameTest extends FlatSpec with Matchers with PropertyCheckers with OptionValues {
+class GameTest extends FlatSpec with Matchers with PropertyCheckers with OptionValues with DisjunctionValues {
   import GameTest._
 
   "GameEndResult" should "be a lawful semigroup" in {
@@ -28,11 +29,18 @@ class GameTest extends FlatSpec with Matchers with PropertyCheckers with OptionV
   "A full board" should "have a game end result" in {
     val board = BoardState.fromTPS("[ 1,2,1,2,1/2,1,2,1,2/1,2,1,2,1/2,1,2,1,2/1,2,1,2,1 1 1 ]").get
     val game = Game(board)
-    game.flatWin.value shouldEqual FlatWin(White)
+    game.winner.value shouldEqual FlatWin(White)
   }
 
   "A new game" should "not have a winner" in {
     val game = Game(5)
     game.winner shouldBe None
+  }
+
+  "A board with 5 stones in a row" should "have a road win" in {
+    val board = BoardState.empty(5)
+    val roadBoard = board.applyActions((1 to 5).map(n => PlayFlat(White, BoardIndex(1, n))))
+    val game = Game(roadBoard.value)
+    game.winner.value shouldBe RoadWin(White)
   }
 }

@@ -113,10 +113,17 @@ case class Game private (size: Int, history: NonEmptyList[(GameAction, BoardStat
     (roads: Vector[GameEndResult]).suml1Opt |+| flatWin
 
   private def roads: Vector[RoadWin] = {
-    def mkGraph(xs: IndexedSeq[BoardIndex]): Graph[BoardIndex, UnDiEdge] = ???
+    def mkGraph(xs: Set[BoardIndex]): Graph[BoardIndex, UnDiEdge] = {
+      val edges = for {
+        idx <- xs
+        n <- idx.allNeighbors(size)
+        if xs.contains(n)
+      } yield UnDiEdge(idx, n)
+      Graph.from(xs, edges)
+    }
     val roadStones = for {
-      rank <- (0 until size) map { _ + 1 }
-      file <- (0 until size) map { _ + 1 }
+      rank <- 1 to size
+      file <- 1 to size
       index = BoardIndex(rank, file)
       stack <- currentBoard.stackAt(index).toList
       top <- stack.top.toList
@@ -125,11 +132,11 @@ case class Game private (size: Int, history: NonEmptyList[(GameAction, BoardStat
     val (whiteRoadStones, blackRoadStones) = roadStones.partition { _._2 == White }
     val whiteIndexes = whiteRoadStones.map(_._1)
     val blackIndexes = blackRoadStones.map(_._1)
-    val whiteGraph = mkGraph(whiteIndexes)
-    val blackGraph = mkGraph(blackIndexes)
+    val whiteGraph = mkGraph(whiteIndexes.toSet)
+    val blackGraph = mkGraph(blackIndexes.toSet)
     val edgeIndexes = for {
-      rank <- (0 until size) map { _ + 1 }
-      file <- (0 until size) map { _ + 1 }
+      rank <- 1 to size
+      file <- 1 to size
       if rank == 1 || file == 1 || rank == size || file == size
     } yield BoardIndex(rank, file)
     def getEdgePath(g: Graph[BoardIndex, UnDiEdge]): IndexedSeq[g.Path] = for {
@@ -146,7 +153,7 @@ case class Game private (size: Int, history: NonEmptyList[(GameAction, BoardStat
     }
   }
 
-  private[taklib] def flatWin: Option[FlatResult] = {
+  private def flatWin: Option[FlatResult] = {
     val allStacks = currentBoard.boardPositions.flatten.toList
     @tailrec
     def go(stacks: List[Stack],
