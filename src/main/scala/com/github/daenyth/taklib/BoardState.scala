@@ -16,7 +16,12 @@ object BoardState {
   type Checked[A] = InvalidMove.type \/ A
 
   /** Build a board from Tak Positional System; None if tps is invalid */
-  def fromTPS(tps: String): Option[BoardState] = ???
+  def fromTPS(tps: String): Option[BoardState] = TpsParser.parse(TpsParser.board, tps) match {
+    case TpsParser.Success(game, _) => Some(game)
+    case other =>
+      println(other) // TODO deleteme
+      None
+  }
 
   def empty(size: Int): BoardState =
     BoardState(size, Vector.fill(size, size)(Stack.empty))

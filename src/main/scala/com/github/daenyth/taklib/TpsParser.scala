@@ -6,7 +6,7 @@ import scala.util.parsing.combinator.RegexParsers
 object TpsParser extends RegexParsers {
   override val skipWhitespace = true
 
-  val tpsParser: Parser[Game] = {
+  val board: Parser[BoardState] = {
     val turn = "1|2".r
     val move = "1|2".r
     val piece: Parser[Vector[Stack]] = "(1|2)+?(1|2[SC])?".r ^^ { ss =>
@@ -30,10 +30,23 @@ object TpsParser extends RegexParsers {
       }
       Vector(Stack(go(owners, Nil, finalStone).toVector))
     }
-    val empty = """x(\d)""".r ^^ { n => Vector.fill(n.toInt)(Stack.empty) }
+    val empty = """x(\d)""".r ^^ { n =>
+      Vector.fill(n.toInt)(Stack.empty)
+    }
     val space: Parser[Vector[Stack]] = empty | piece
-    val row: Parser[Vector[Stack]] = rep1sep(space, ",") ^^ { xs: List[Vector[Stack]] => ??? }
+    val row: Parser[Vector[Stack]] = rep1sep(space, ",") ^^ { xs: List[Vector[Stack]] =>
+      xs.toVector.flatten: Vector[Stack]
+    }
     val board = rep1sep(row, "/")
-    "[" ~ board ~ turn ~ move ~ "]" ^^ { case _ ~ bd ~ t ~ mv ~ _ => ??? }
+    "[" ~ board ~ turn ~ move ~ "]" ^^ {
+      case _ ~ bd ~ t ~ mv ~ _ =>
+        val pieces: Vector[Vector[Stack]] = bd.toVector
+        val ranksize = pieces.size
+
+        // How do I report this as a parse fail instead?
+        assert((for (file <- pieces) yield file.size).forall(_ == ranksize))
+
+        BoardState(ranksize, pieces)
+    }
   }
 }
