@@ -28,6 +28,7 @@ resolvers += Resolver.sonatypeRepo("releases")
 libraryDependencies ++= Seq(
   "org.scalaz" %% "scalaz-core" % "7.2.8",
   "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.5",
+  "org.scala-graph" %% "graph-core" % "1.11.4",
 
   "org.scalatest" %% "scalatest" % "3.0.1" % "test",
   "org.scalacheck" %% "scalacheck" % "1.13.4" % "test",

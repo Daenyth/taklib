@@ -142,6 +142,8 @@ object BoardIndex {
 }
 // Rank is normally 'a'..'e'/'f' depending on board size, Int here for convenience.
 case class BoardIndex(rank: Int, file: Int) {
+  def oppositeIndexes(size: Int): List[BoardIndex] = ???
+
   import BoardIndex._
   // This will throw for larger than 8x8 but that's not even defined in the rules anyway
   def name: String = s"${rankNames(rank - 1)}$file"
@@ -180,7 +182,8 @@ case object White extends Player
 
 sealed trait Stone {
   val owner: Player
+  val isRoadStone: Boolean
 }
-case class Capstone(owner: Player) extends Stone
-case class StandingStone(owner: Player) extends Stone
-case class FlatStone(owner: Player) extends Stone
+case class Capstone(owner: Player) extends Stone { val isRoadStone = true }
+case class StandingStone(owner: Player) extends Stone { val isRoadStone = false }
+case class FlatStone(owner: Player) extends Stone { val isRoadStone = true }

@@ -5,6 +5,8 @@ import com.github.daenyth.taklib.BooleanOps._
 
 import scala.annotation.tailrec
 import scala.collection.immutable.{::, Nil}
+import scalax.collection.GraphEdge.UnDiEdge
+import scalax.collection.immutable.Graph
 import scalaz.Ordering.{EQ, GT, LT}
 import scalaz.std.anyVal.intInstance
 import scalaz.std.option._
@@ -110,7 +112,39 @@ case class Game private (size: Int, history: NonEmptyList[(GameAction, BoardStat
   def winner: Option[GameEndResult] =
     (roads: Vector[GameEndResult]).suml1Opt |+| flatWin
 
-  private def roads: Vector[RoadWin] = ???
+  private def roads: Vector[RoadWin] = {
+    def mkGraph(xs: IndexedSeq[BoardIndex]): Graph[BoardIndex, UnDiEdge] = ???
+    val roadStones = for {
+      rank <- (0 until size) map { _ + 1 }
+      file <- (0 until size) map { _ + 1 }
+      index = BoardIndex(rank, file)
+      stack <- currentBoard.stackAt(index).toList
+      top <- stack.top.toList
+      if top.isRoadStone
+    } yield (index, top.owner)
+    val (whiteRoadStones, blackRoadStones) = roadStones.partition { _._2 == White }
+    val whiteIndexes = whiteRoadStones.map(_._1)
+    val blackIndexes = blackRoadStones.map(_._1)
+    val whiteGraph = mkGraph(whiteIndexes)
+    val blackGraph = mkGraph(blackIndexes)
+    val edgeIndexes = for {
+      rank <- (0 until size) map { _ + 1 }
+      file <- (0 until size) map { _ + 1 }
+      if rank == 1 || file == 1 || rank == size || file == size
+    } yield BoardIndex(rank, file)
+    def getEdgePath(g: Graph[BoardIndex, UnDiEdge]): IndexedSeq[g.Path] = for {
+      edge <- edgeIndexes
+      opposite <- edge.oppositeIndexes(size)
+      startNode <- g.find(edge).toList
+      endNode <- g.find(opposite).toList
+      path <- startNode.pathTo(endNode)
+    } yield path
+    val whitePaths = getEdgePath(whiteGraph)
+    val blackPaths = getEdgePath(blackGraph)
+    Vector((White, whitePaths.nonEmpty), (Black, blackPaths.nonEmpty)).flatMap { case (player, hasRoad) =>
+      if (hasRoad) Vector(RoadWin(player)) else Vector.empty
+    }
+  }
 
   private[taklib] def flatWin: Option[FlatResult] = {
     val allStacks = currentBoard.boardPositions.flatten.toList
