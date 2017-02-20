@@ -19,7 +19,12 @@ object GameTest {
   }
 }
 
-class GameTest extends FlatSpec with Matchers with PropertyCheckers with OptionValues with DisjunctionValues {
+class GameTest
+    extends FlatSpec
+    with Matchers
+    with PropertyCheckers
+    with OptionValues
+    with DisjunctionValues {
   import GameTest._
 
   "GameEndResult" should "be a lawful semigroup" in {
@@ -44,9 +49,29 @@ class GameTest extends FlatSpec with Matchers with PropertyCheckers with OptionV
   }
 
   "A board with 5 stones in a row" should "have a road win" in {
-    val board = Board.empty(5)
+    val board = Board.ofSize(5)
     val roadBoard = board.applyActions((1 to 5).map(n => PlayFlat(White, BoardIndex(1, n))))
     val game = Game.fromBoard(roadBoard.value)
     game.winner.value shouldBe RoadWin(White)
+  }
+
+  "Four flats and a capstone" should "have a road win" in {
+    val board = Board.ofSize(5)
+    val moves = (1 to 4).map(n => PlayFlat(Black, BoardIndex(1, n))) ++ Vector(
+        PlayCapstone(Black, BoardIndex(1, 5))
+      )
+    val roadBoard = board.applyActions(moves)
+    val game = Game.fromBoard(roadBoard.value)
+    game.winner.value shouldBe RoadWin(Black)
+  }
+
+  "Four flats and a standing stone" should "not be a win" in {
+    val board = Board.ofSize(5)
+    val moves = (1 to 4).map(n => PlayFlat(Black, BoardIndex(1, n))) ++ Vector(
+      PlayStanding(Black, BoardIndex(1, 5))
+    )
+    val roadBoard = board.applyActions(moves)
+    val game = Game.fromBoard(roadBoard.value)
+    game.winner shouldBe None
   }
 }

@@ -5,10 +5,8 @@ import org.typelevel.scalatest.DisjunctionValues
 
 class MoveTest extends FlatSpec with Matchers with DisjunctionValues {
 
-  behavior of "BoardState"
-
-  it should "doMoveAction for simple capture" in {
-    val board = Board.empty(5)
+  "Moving to capture" should "make a stack" in {
+    val board = Board.ofSize(5)
     val idx = BoardIndex(1, 1)
     val neighbor = idx.neighbor(Right)
     val finalBoard = board.applyActions(
@@ -26,14 +24,28 @@ class MoveTest extends FlatSpec with Matchers with DisjunctionValues {
     a2 shouldBe Stack(Vector(FlatStone(Black), FlatStone(White)))
   }
 
-  it should "reject moving off the board" in {
-    val board = Board.empty(5)
+  "Moving off the board" should "be rejected" in {
+    val board = Board.ofSize(5)
     val idx = BoardIndex(1, 1)
     val result = board.applyActions(
       PlayFlat(White, idx),
       Move(White, idx, Left, Some(1), Some(Vector(1)))
     )
     result shouldBe 'left
+  }
+
+  "A capstone" should "flatten standing stones by itself" in {
+    val i = BoardIndex(1, 1)
+    val j = i.neighbor(Right)
+    val board = Board
+      .ofSize(5)
+      .applyActions(PlayStanding(White, i), PlayCapstone(Black, j))
+      .value
+    val result = for {
+      afterMove <- board.applyAction(Move(Black, j, Left, None, None))
+      stack <- afterMove.stackAt(i)
+    } yield stack
+    result.value shouldEqual Stack(Vector(FlatStone(White), Capstone(Black)))
   }
 
 }

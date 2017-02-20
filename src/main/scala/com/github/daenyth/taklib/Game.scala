@@ -57,7 +57,7 @@ object Game {
       case m: Move => board.hasIndex(m.from) && board.hasIndex(m.finalPosition)
     }
   def ofSize(size: Int): Game = {
-    val b = Board.empty(size)
+    val b = Board.ofSize(size)
     Game(size, NonEmptyList((StartGameWithBoard(b), b)))
   }
   def fromBoard(board: Board): Game =

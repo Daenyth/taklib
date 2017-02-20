@@ -22,7 +22,7 @@ object Board {
     case other => None
   }
 
-  def empty(size: Int): Board =
+  def ofSize(size: Int): Board =
     Board(size, Vector.fill(size, size)(Stack.empty))
 
   private def setStackAt(positions: BoardLayout, index: BoardIndex, stack: Stack): BoardLayout = {
