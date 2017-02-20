@@ -15,6 +15,7 @@ import scalaz.syntax.either._
 import scalaz.syntax.foldable._
 import scalaz.syntax.order._
 import scalaz.syntax.semigroup._
+import scalaz.syntax.std.option._
 import scalaz.{Equal, NonEmptyList, Semigroup}
 
 object GameEndResult {
@@ -55,6 +56,16 @@ object Game {
     action match {
       case play: PlayStone => board.hasIndex(play.at)
       case m: Move => board.hasIndex(m.from) && board.hasIndex(m.finalPosition)
+    }
+  def actingPlayerControlsStack(board: Board, action: TurnAction): Boolean =
+    action match {
+      case play: PlayStone => true
+      case m: Move =>
+        val equal = for {
+          stack <- board.stackAt(m.from)
+          controller <- stack.controller.toRightDisjunction(InvalidMove)
+        } yield controller === action.player
+        equal.getOrElse(false)
     }
   def ofSize(size: Int): Game = {
     val b = Board.ofSize(size)
@@ -101,6 +112,7 @@ case class Game private (size: Int, history: NonEmptyList[(GameAction, Board)]) 
     (
       action.player == nextPlayer
         && actionIndexIsValid(currentBoard, action)
+        && actingPlayerControlsStack(currentBoard, action)
     ).guard(InvalidMove)
 
   def undo: Checked[Game] =
@@ -141,17 +153,19 @@ case class Game private (size: Int, history: NonEmptyList[(GameAction, Board)]) 
       file <- 1 to size
       if rank == 1 || file == 1 || rank == size || file == size
     } yield BoardIndex(rank, file)
-    def getEdgePath(g: Graph[BoardIndex, UnDiEdge]): IndexedSeq[g.Path] = for {
-      edge <- edgeIndexes
-      opposite <- edge.oppositeIndexes(size)
-      startNode <- g.find(edge).toList
-      endNode <- g.find(opposite).toList
-      path <- startNode.pathTo(endNode)
-    } yield path
+    def getEdgePath(g: Graph[BoardIndex, UnDiEdge]): IndexedSeq[g.Path] =
+      for {
+        edge <- edgeIndexes
+        opposite <- edge.oppositeIndexes(size)
+        startNode <- g.find(edge).toList
+        endNode <- g.find(opposite).toList
+        path <- startNode.pathTo(endNode)
+      } yield path
     val whitePaths = getEdgePath(whiteGraph)
     val blackPaths = getEdgePath(blackGraph)
-    Vector((White, whitePaths.nonEmpty), (Black, blackPaths.nonEmpty)).flatMap { case (player, hasRoad) =>
-      if (hasRoad) Vector(RoadWin(player)) else Vector.empty
+    Vector((White, whitePaths.nonEmpty), (Black, blackPaths.nonEmpty)).flatMap {
+      case (player, hasRoad) =>
+        if (hasRoad) Vector(RoadWin(player)) else Vector.empty
     }
   }
 

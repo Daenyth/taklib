@@ -9,7 +9,7 @@ import scalaz.std.vector._
 import scalaz.syntax.either._
 import scalaz.syntax.monoid._
 import scalaz.syntax.std.option._
-import scalaz.{-\/, \/, \/-}
+import scalaz.{-\/, Equal, \/, \/-}
 
 object Board {
 
@@ -189,6 +189,11 @@ case class Stack(pieces: Vector[Stone]) {
   def nonEmpty: Boolean = !isEmpty
 }
 
+object Player {
+  implicit val playerInstance: Equal[Player] = new Equal[Player] {
+    override def equal(a1: Player, a2: Player): Boolean = a1 == a2
+  }
+}
 sealed trait Player {
   def fold[A](ifBlack: => A, ifWhite: => A): A = this match {
     case Black => ifBlack
