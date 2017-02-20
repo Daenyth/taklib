@@ -32,6 +32,12 @@ class GameTest extends FlatSpec with Matchers with PropertyCheckers with OptionV
     game.winner.value shouldEqual FlatWin(White)
   }
 
+  "A full board with even flat count" should "be a draw" in {
+    val board = BoardState.fromTPS("[ 1,2,1,2,1/2,1,2,1,2/1,2,1,2,1/2,1,2,1,2/1,2,1,2,1S 1 1 ]").get
+    val game = Game(board)
+    game.winner.value shouldEqual Draw
+  }
+
   "A new game" should "not have a winner" in {
     val game = Game(5)
     game.winner shouldBe None

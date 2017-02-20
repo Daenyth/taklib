@@ -9,7 +9,7 @@ object TpsParser extends RegexParsers {
   val board: Parser[BoardState] = {
     val turn = "1|2".r
     val move = "1|2".r
-    val piece: Parser[Vector[Stack]] = "(1|2)+?(1|2[SC])?".r ^^ { ss =>
+    val piece: Parser[Vector[Stack]] = "(1|2)[SC]?".r ^^ { ss =>
       @tailrec
       def go(owners: List[Player], stack: List[Stone], finalStone: Player => Stone): List[Stone] =
         owners match {
