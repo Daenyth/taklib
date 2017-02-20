@@ -56,12 +56,14 @@ object Game {
       case play: PlayStone => board.hasIndex(play.at)
       case m: Move => board.hasIndex(m.from) && board.hasIndex(m.finalPosition)
     }
-  def apply(size: Int): Game = {
+  def ofSize(size: Int): Game = {
     val b = BoardState.empty(size)
     Game(size, NonEmptyList((StartGameWithBoard(b), b)))
   }
-  def apply(board: BoardState): Game =
+  def fromBoard(board: BoardState): Game =
     Game(board.size, NonEmptyList((StartGameWithBoard(board), board)))
+
+  def fromPtn(ptn: String): Option[Game] = ???
 
   /** board size -> (stones, capstones) */
   val reserveSize: Map[Int, (Int, Int)] = Map(

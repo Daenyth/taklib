@@ -41,9 +41,6 @@ case class PlayStanding(player: Player, at: BoardIndex) extends PlayStone {
 case class PlayCapstone(player: Player, at: BoardIndex) extends PlayStone {
   val stone = Capstone(player)
 }
-object Move {
-  def fromPtn(ptn: String): Option[Move] = ???
-}
 case class Move(player: Player,
                 from: BoardIndex,
                 direction: MoveDirection,

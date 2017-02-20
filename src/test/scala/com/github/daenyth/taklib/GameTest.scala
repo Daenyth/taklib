@@ -28,25 +28,25 @@ class GameTest extends FlatSpec with Matchers with PropertyCheckers with OptionV
 
   "A full board" should "have a game end result" in {
     val board = BoardState.fromTPS("[ 1,2,1,2,1/2,1,2,1,2/1,2,1,2,1/2,1,2,1,2/1,2,1,2,1 1 1 ]").get
-    val game = Game(board)
+    val game = Game.fromBoard(board)
     game.winner.value shouldEqual FlatWin(White)
   }
 
   "A full board with even flat count" should "be a draw" in {
     val board = BoardState.fromTPS("[ 1,2,1,2,1/2,1,2,1,2/1,2,1,2,1/2,1,2,1,2/1,2,1,2,1S 1 1 ]").get
-    val game = Game(board)
+    val game = Game.fromBoard(board)
     game.winner.value shouldEqual Draw
   }
 
   "A new game" should "not have a winner" in {
-    val game = Game(5)
+    val game = Game.ofSize(5)
     game.winner shouldBe None
   }
 
   "A board with 5 stones in a row" should "have a road win" in {
     val board = BoardState.empty(5)
     val roadBoard = board.applyActions((1 to 5).map(n => PlayFlat(White, BoardIndex(1, n))))
-    val game = Game(roadBoard.value)
+    val game = Game.fromBoard(roadBoard.value)
     game.winner.value shouldBe RoadWin(White)
   }
 }
