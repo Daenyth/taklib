@@ -48,4 +48,21 @@ class MoveTest extends FlatSpec with Matchers with DisjunctionValues {
     result.value shouldEqual Stack(Vector(FlatStone(White), Capstone(Black)))
   }
 
+  "A capstone" should "not be allowed to put a prisoner on top of a standing stone" in {
+    val i = BoardIndex(1, 1)
+    val j = i.neighbor(Right)
+    val k = j.neighbor(Right)
+    val board = Board
+      .ofSize(5)
+      .applyActions(
+        PlayStanding(White, i),
+        PlayFlat(White, j),
+        PlayCapstone(Black, k),
+        Move(Black, k, Left, None, None)
+      )
+      .value
+    val result = board.applyAction(Move(Black, j, Left, None, None))
+    result.leftValue shouldBe InvalidMove
+  }
+
 }
