@@ -2,7 +2,7 @@ package com.github.daenyth.taklib
 
 import org.scalatest.{FlatSpec, Matchers}
 
-class BoardIndexTest extends FlatSpec with Matchers {
+class BoardTest extends FlatSpec with Matchers {
   "An edge BoardIndex" should "be opposite one side" in {
     val idx = BoardIndex(1, 2)
     val opposites = idx.oppositeIndexes(5).toSet

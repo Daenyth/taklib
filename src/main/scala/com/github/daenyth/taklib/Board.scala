@@ -1,6 +1,6 @@
 package com.github.daenyth.taklib
 
-import com.github.daenyth.taklib.BoardState._
+import com.github.daenyth.taklib.Board._
 import com.github.daenyth.taklib.BooleanOps._
 
 import scala.annotation.tailrec
@@ -11,29 +11,29 @@ import scalaz.syntax.monoid._
 import scalaz.syntax.std.option._
 import scalaz.{-\/, \/, \/-}
 
-object BoardState {
+object Board {
 
-  type Board = Vector[Vector[Stack]]
+  type BoardLayout = Vector[Vector[Stack]]
   type Checked[A] = InvalidMove.type \/ A
 
   /** Build a board from Tak Positional System; None if tps is invalid */
-  def fromTPS(tps: String): Option[BoardState] = TpsParser.parse(TpsParser.board, tps) match {
+  def fromTPS(tps: String): Option[Board] = TpsParser.parse(TpsParser.board, tps) match {
     case TpsParser.Success(game, _) => Some(game)
-    case other =>
-      println(other) // TODO deleteme
-      None
+    case other => None
   }
 
-  def empty(size: Int): BoardState =
-    BoardState(size, Vector.fill(size, size)(Stack.empty))
+  def empty(size: Int): Board =
+    Board(size, Vector.fill(size, size)(Stack.empty))
 
-  private def setStackAt(positions: Board, index: BoardIndex, stack: Stack): Board = {
+  private def setStackAt(positions: BoardLayout, index: BoardIndex, stack: Stack): BoardLayout = {
     // TODO uses lenses instead of manual indexing/updating
     val (i, j) = (index.rank - 1, index.file - 1)
     positions.updated(i, positions(i).updated(j, stack))
   }
 
-  private def combineStackAt(positions: Board, index: BoardIndex, stack: Stack): Checked[Board] = {
+  private def combineStackAt(positions: BoardLayout,
+                             index: BoardIndex,
+                             stack: Stack): Checked[BoardLayout] = {
     val (i, j) = (index.rank - 1, index.file - 1)
     val stackAtIdx = \/.fromTryCatchNonFatal(positions(i)(j)).leftMap(_ => InvalidMove)
     val newStack: Checked[Stack] = stackAtIdx.flatMap {
@@ -54,23 +54,23 @@ object BoardState {
   }
 }
 
-case class BoardState(size: Int, boardPositions: Board) {
+case class Board(size: Int, boardPositions: BoardLayout) {
 
-  def applyAction(action: TurnAction): Checked[BoardState] = action match {
+  def applyAction(action: TurnAction): Checked[Board] = action match {
     case PlayStone(at, stone) =>
       val stack = Stack.of(stone)
       val newPositions = setStackAt(boardPositions, at, stack)
-      BoardState(size, newPositions).right
+      Board(size, newPositions).right
     case m: Move => doMoveAction(m)
   }
 
-  def applyActions(actions: Seq[TurnAction]): Checked[BoardState] =
+  def applyActions(actions: Seq[TurnAction]): Checked[Board] =
     actions.headOption
       .toRightDisjunction(InvalidMove)
       .flatMap(a => applyActions(a, actions.tail: _*))
 
   @tailrec
-  final def applyActions(a: TurnAction, as: TurnAction*): Checked[BoardState] =
+  final def applyActions(a: TurnAction, as: TurnAction*): Checked[Board] =
     // Explicit match instead of map/flatmap to appease @tailrec
     applyAction(a) match {
       case e @ -\/(_) => e
@@ -81,12 +81,12 @@ case class BoardState(size: Int, boardPositions: Board) {
         }
     }
 
-  private[taklib] def doMoveAction(m: Move): InvalidMove.type \/ BoardState = {
+  private[taklib] def doMoveAction(m: Move): Checked[Board] = {
     @tailrec
     def spreadStack(movingStack: Vector[Stone],
                     index: BoardIndex,
                     drops: List[Int],
-                    positions: Board): Checked[Board] =
+                    positions: BoardLayout): Checked[BoardLayout] =
       drops match {
         case Nil => positions.right
         case num :: ds =>
@@ -130,7 +130,7 @@ case class BoardState(size: Int, boardPositions: Board) {
       _ <- (count <= size).guard(InvalidMove)
       _ <- stack.nonEmpty.guard(InvalidMove)
       finalPositions <- moveStack(stack, count)
-    } yield BoardState(size, finalPositions)
+    } yield Board(size, finalPositions)
   }
 
   def stackAt(index: BoardIndex): Checked[Stack] =

@@ -8,7 +8,7 @@ class MoveTest extends FlatSpec with Matchers with DisjunctionValues {
   behavior of "BoardState"
 
   it should "doMoveAction for simple capture" in {
-    val board = BoardState.empty(5)
+    val board = Board.empty(5)
     val idx = BoardIndex(1, 1)
     val neighbor = idx.neighbor(Right)
     val finalBoard = board.applyActions(
@@ -27,7 +27,7 @@ class MoveTest extends FlatSpec with Matchers with DisjunctionValues {
   }
 
   it should "reject moving off the board" in {
-    val board = BoardState.empty(5)
+    val board = Board.empty(5)
     val idx = BoardIndex(1, 1)
     val result = board.applyActions(
       PlayFlat(White, idx),

@@ -1,7 +1,7 @@
 package com.github.daenyth.taklib
 
 sealed trait GameAction
-case class StartGameWithBoard(board: BoardState) extends GameAction
+case class StartGameWithBoard(board: Board) extends GameAction
 sealed trait TurnAction extends GameAction {
   def player: Player // TODO maybe get rid of this - makes ptn parsing hard
 

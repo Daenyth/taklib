@@ -1,6 +1,6 @@
 package com.github.daenyth.taklib
 
-import com.github.daenyth.taklib.BoardState.Checked
+import com.github.daenyth.taklib.Board.Checked
 import com.github.daenyth.taklib.BooleanOps._
 
 import scala.annotation.tailrec
@@ -51,16 +51,16 @@ case object DoubleRoad extends RoadResult
 case object Draw extends FlatResult
 
 object Game {
-  def actionIndexIsValid(board: BoardState, action: TurnAction): Boolean =
+  def actionIndexIsValid(board: Board, action: TurnAction): Boolean =
     action match {
       case play: PlayStone => board.hasIndex(play.at)
       case m: Move => board.hasIndex(m.from) && board.hasIndex(m.finalPosition)
     }
   def ofSize(size: Int): Game = {
-    val b = BoardState.empty(size)
+    val b = Board.empty(size)
     Game(size, NonEmptyList((StartGameWithBoard(b), b)))
   }
-  def fromBoard(board: BoardState): Game =
+  def fromBoard(board: Board): Game =
     Game(board.size, NonEmptyList((StartGameWithBoard(board), board)))
 
   def fromPtn(ptn: String): Option[Game] = ???
@@ -76,9 +76,9 @@ object Game {
 }
 
 // TODO Eventually change NEL to a tree zipper to allow for branching game history (unlimited rollback-rollforward)
-case class Game private (size: Int, history: NonEmptyList[(GameAction, BoardState)]) {
+case class Game private (size: Int, history: NonEmptyList[(GameAction, Board)]) {
   import Game._
-  def currentBoard: BoardState = history.head._2
+  def currentBoard: Board = history.head._2
   def nextPlayer: Player = history.head._1 match {
     case StartGameWithBoard(_) => White
     case a: TurnAction =>
