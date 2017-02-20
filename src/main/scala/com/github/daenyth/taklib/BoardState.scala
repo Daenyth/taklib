@@ -65,7 +65,9 @@ case class BoardState(size: Int, boardPositions: Board) {
   }
 
   def applyActions(actions: Seq[TurnAction]): Checked[BoardState] =
-    actions.headOption.toRightDisjunction(InvalidMove).flatMap(a => applyActions(a, actions.tail:_*))
+    actions.headOption
+      .toRightDisjunction(InvalidMove)
+      .flatMap(a => applyActions(a, actions.tail: _*))
 
   @tailrec
   final def applyActions(a: TurnAction, as: TurnAction*): Checked[BoardState] =
@@ -79,7 +81,6 @@ case class BoardState(size: Int, boardPositions: Board) {
         }
     }
 
-  // TODO test this
   private[taklib] def doMoveAction(m: Move): InvalidMove.type \/ BoardState = {
     @tailrec
     def spreadStack(movingStack: Vector[Stone],
@@ -148,12 +149,17 @@ object BoardIndex {
 }
 // Rank is normally 'a'..'e'/'f' depending on board size, Int here for convenience.
 case class BoardIndex(rank: Int, file: Int) {
-  def oppositeIndexes(boardSize: Int): IndexedSeq[BoardIndex] =
-    if (rank == 1) for (n <- 1 to boardSize) yield BoardIndex(boardSize, n)
-    else if (file == 1) for (n <- 1 to boardSize) yield BoardIndex(n, boardSize)
-    else if (rank == boardSize) for (n <- 1 to boardSize) yield BoardIndex(1, n)
-    else if (file == boardSize) for (n <- 1 to boardSize) yield BoardIndex(n, 1)
-    else Vector.empty
+  def oppositeIndexes(boardSize: Int): IndexedSeq[BoardIndex] = {
+    val left =
+      if (rank == 1) for (n <- 1 to boardSize) yield BoardIndex(boardSize, n) else Vector.empty
+    val bottom =
+      if (file == 1) for (n <- 1 to boardSize) yield BoardIndex(n, boardSize) else Vector.empty
+    val right =
+      if (rank == boardSize) for (n <- 1 to boardSize) yield BoardIndex(1, n) else Vector.empty
+    val top =
+      if (file == boardSize) for (n <- 1 to boardSize) yield BoardIndex(n, 1) else Vector.empty
+    left ++ bottom ++ right ++ top
+  }
 
   import BoardIndex._
   // This will throw for larger than 8x8 but that's not even defined in the rules anyway
