@@ -25,6 +25,9 @@ val next: InvalidMove.type \/ Game = game.takeTurn(PlayFlat(Black, BoardIndex(1,
 // next: com.github.daenyth.taklib.Board.Checked[com.github.daenyth.taklib.Game] = \/-(Game(6,1,
 ```
 
+## Release status
+Taklib is currently alpha status - there may be bugs and the api is not stable yet
+
 ## What you can do now
 - Create games with empty boards or boards from TPS
 - Play moves that are checked for validity
