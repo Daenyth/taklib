@@ -32,14 +32,12 @@ class GameTest
   }
 
   "A full board" should "have a game end result" in {
-    val board = Board.fromTPS("[ 1,2,1,2,1/2,1,2,1,2/1,2,1,2,1/2,1,2,1,2/1,2,1,2,1 1 1 ]").get
-    val game = Game.fromBoard(board)
+    val game = Game.fromTps("[ 1,2,1,2,1/2,1,2,1,2/1,2,1,2,1/2,1,2,1,2/1,2,1,2,1 12 2 ]").value
     game.winner.value shouldEqual FlatWin(White)
   }
 
   "A full board with even flat count" should "be a draw" in {
-    val board = Board.fromTPS("[ 1,2,1,2,1/2,1,2,1,2/1,2,1,2,1/2,1,2,1,2/1,2,1,2,1S 1 1 ]").get
-    val game = Game.fromBoard(board)
+    val game = Game.fromTps("[ 1,2,1,2,1/2,1,2,1,2/1,2,1,2,1/2,1,2,1,2/1,2,1,2,1S 1 1 ]").value
     game.winner.value shouldEqual Draw
   }
 

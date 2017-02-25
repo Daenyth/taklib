@@ -16,10 +16,10 @@ object Board {
   type BoardLayout = Vector[Vector[Stack]]
   type Checked[A] = InvalidMove.type \/ A
 
-  /** Build a board from Tak Positional System; None if tps is invalid */
-  def fromTPS(tps: String): Option[Board] = TpsParser.parse(TpsParser.board, tps) match {
-    case TpsParser.Success(game, _) => Some(game)
-    case other => None
+  /** Build a board from Tak Positional System; -\/ if tps is invalid */
+  def fromTps(tps: String): String \/ Board = TpsParser.parse(TpsParser.board, tps) match {
+    case TpsParser.Success((board, _, _), _) => board.right
+    case err: TpsParser.NoSuccess => err.msg.left
   }
 
   def ofSize(size: Int): Board =

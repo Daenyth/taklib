@@ -35,3 +35,5 @@ libraryDependencies ++= Seq(
   "org.typelevel" %% "scalaz-scalatest" % "1.1.1" % "test",
   "org.scalaz" %% "scalaz-scalacheck-binding" % "7.3.0-M9" % "test"
 )
+
+initialCommands in console += "import com.github.daenyth.taklib._"

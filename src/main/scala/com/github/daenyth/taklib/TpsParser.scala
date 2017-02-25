@@ -6,8 +6,8 @@ import scala.util.parsing.combinator.RegexParsers
 object TpsParser extends RegexParsers {
   override val skipWhitespace = true
 
-  val board: Parser[Board] = {
-    val turn = "1|2".r
+  val board: Parser[(Board, Int, Int)] = {
+    val turn = """\d+""".r
     val move = "1|2".r
     val piece: Parser[Vector[Stack]] = "(1|2)[SC]?".r ^^ { ss =>
       @tailrec
@@ -46,7 +46,7 @@ object TpsParser extends RegexParsers {
         // How do I report this as a parse fail instead?
         assert((for (file <- pieces) yield file.size).forall(_ == ranksize))
 
-        Board(ranksize, pieces)
+        (Board(ranksize, pieces), t.toInt, mv.toInt)
     }
   }
 }

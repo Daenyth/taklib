@@ -16,7 +16,7 @@ import scalaz.syntax.foldable._
 import scalaz.syntax.order._
 import scalaz.syntax.semigroup._
 import scalaz.syntax.std.option._
-import scalaz.{Equal, NonEmptyList, Semigroup}
+import scalaz.{Equal, NonEmptyList, Semigroup, \/}
 
 object GameEndResult {
   implicit val gerInstance: Semigroup[GameEndResult] with Equal[GameEndResult] =
@@ -73,10 +73,19 @@ object Game {
   }
 
   // Start at turn 3 to make the "play opponent's stone" rule easier
-  def fromBoard(board: Board): Game =
-    Game(board.size, 3, NonEmptyList((StartGameWithBoard(board), board)))
+  def fromBoard(board: Board, turnNumber: Int = 3): Game =
+    Game(board.size, turnNumber, NonEmptyList((StartGameWithBoard(board), board)))
 
-  def fromPtn(ptn: String): Option[Game] = ???
+  def fromPtn(ptn: String): String \/ Game = ???
+
+  def fromTps(tps: String): String \/ Game =
+    TpsParser.parse(TpsParser.board, tps) match {
+      case TpsParser.Success((board, turn, move), _) =>
+        // We use one turn for each player's action, Tps uses turn as a move for both players with a move counter between them
+        val turnNumber = (2 * turn) + move - 1
+        Game.fromBoard(board, turnNumber).right
+      case err: TpsParser.NoSuccess => err.msg.left
+    }
 
   /** board size -> (stones, capstones) */
   val reserveSize: Map[Int, (Int, Int)] = Map(
@@ -93,10 +102,10 @@ case class Game private (size: Int, turnNumber: Int, history: NonEmptyList[(Game
   import Game._
   def currentBoard: Board = history.head._2
   def nextPlayer: Player = turnNumber match {
-      case 1 => Black
-      case 2 => White
-      case n if n % 2 == 1 => White
-      case _ => Black
+    case 1 => Black
+    case 2 => White
+    case n if n % 2 == 1 => White
+    case _ => Black
   }
 
   def takeTurn(action: TurnAction): Checked[Game] =
