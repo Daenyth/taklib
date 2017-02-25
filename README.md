@@ -42,7 +42,7 @@ Taklib is currently alpha status - there may be bugs and the api is not stable y
 ## Non-goals
 - Not aiming to be the fastest runtime - I'm not benchmarking anything until the project is much more stable.
 - Stable API - for now. This is a new library, and so the api can change without notice as I find better ways to do things.
-- Supporting scala.js - for now. If all my dependencies support it, I can do this later
+- Supporting scala.js - for now. It should be possible with little effort but it's not a priority. Patches welcome
 - Cats support. Taklib will use scalaz only for the near future
 
 ## Testing
