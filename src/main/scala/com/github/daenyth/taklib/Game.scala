@@ -69,10 +69,12 @@ object Game {
     }
   def ofSize(size: Int): Game = {
     val b = Board.ofSize(size)
-    Game(size, NonEmptyList((StartGameWithBoard(b), b)))
+    Game(size, 1, NonEmptyList((StartGameWithBoard(b), b)))
   }
+
+  // Start at turn 3 to make the "play opponent's stone" rule easier
   def fromBoard(board: Board): Game =
-    Game(board.size, NonEmptyList((StartGameWithBoard(board), board)))
+    Game(board.size, 3, NonEmptyList((StartGameWithBoard(board), board)))
 
   def fromPtn(ptn: String): Option[Game] = ???
 
@@ -87,19 +89,15 @@ object Game {
 }
 
 // TODO Eventually change NEL to a tree zipper to allow for branching game history (unlimited rollback-rollforward)
-case class Game private (size: Int, history: NonEmptyList[(GameAction, Board)]) {
+case class Game private (size: Int, turnNumber: Int, history: NonEmptyList[(GameAction, Board)]) {
   import Game._
   def currentBoard: Board = history.head._2
-  def nextPlayer: Player = history.head._1 match {
-    case StartGameWithBoard(_) => White
-    case a: TurnAction =>
-      a.player match {
-        case White => Black
-        case Black => White
-      }
+  def nextPlayer: Player = turnNumber match {
+      case 1 => Black
+      case 2 => White
+      case n if n % 2 == 1 => White
+      case _ => Black
   }
-
-  def turnNumber: Int = ???
 
   def takeTurn(action: TurnAction): Checked[Game] =
     for {
@@ -117,7 +115,7 @@ case class Game private (size: Int, history: NonEmptyList[(GameAction, Board)]) 
 
   def undo: Checked[Game] =
     history.tail.toNel.map { prev =>
-      this.copy(history = prev).right
+      this.copy(turnNumber = this.turnNumber - 1, history = prev).right
     } getOrElse InvalidMove.left
 
   /** Serialize game history to Portable Tak Notation */

@@ -86,4 +86,10 @@ class GameTest
     val board = Board.ofSize(5).applyAction(PlayFlat(Black, i)).value
     Game.actingPlayerControlsStack(board, Move(White, i, Right, None, None)) shouldBe false
   }
+
+  "The first move" should "be taken with a black flatstone" in {
+    val game = Game.ofSize(5)
+    val result = game.takeTurn(PlayFlat(Black, BoardIndex(1, 1)))
+    result shouldBe 'right
+  }
 }
