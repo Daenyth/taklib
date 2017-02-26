@@ -68,7 +68,7 @@ object Main {
           PtnParser
             .parseEither(PtnParser.turnAction, input)
             .fold(
-              err => Task.fail(new PtnParseError(err)),
+              err => Task.fail(PtnParseError(err)),
               toAction => Task.now(toAction)
             )
       }
