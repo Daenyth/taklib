@@ -65,4 +65,9 @@ class MoveTest extends FlatSpec with Matchers with DisjunctionValues {
     result.leftValue shouldBe an[InvalidMove]
   }
 
+  "An existing stack" should "prevent a new stack from being played at that space" in {
+    val idx = BoardIndex(1, 1)
+    val board = Board.ofSize(5).applyAction(PlayFlat(White, idx)).value
+    board.applyAction(PlayFlat(White, idx)) shouldBe 'left
+  }
 }

@@ -9,7 +9,7 @@ import scalaz.std.vector._
 import scalaz.syntax.either._
 import scalaz.syntax.monoid._
 import scalaz.syntax.std.option._
-import scalaz.{-\/, Equal, \/, \/-}
+import scalaz.{-\/, \/, \/-, Equal}
 
 object Board {
 
@@ -35,7 +35,8 @@ object Board {
                              index: BoardIndex,
                              stack: Stack): Checked[BoardLayout] = {
     val (i, j) = (index.rank - 1, index.file - 1)
-    val stackAtIdx = \/.fromTryCatchNonFatal(positions(i)(j)).leftMap(_ => InvalidMove(s"$index is not on the board"))
+    val stackAtIdx = \/.fromTryCatchNonFatal(positions(i)(j))
+      .leftMap(_ => InvalidMove(s"$index is not on the board"))
     val newStack: Checked[Stack] = stackAtIdx.flatMap {
       case Stack(Vector()) => stack.right
       case Stack(pieces) =>
@@ -58,9 +59,13 @@ case class Board(size: Int, boardPositions: BoardLayout) {
 
   def applyAction(action: TurnAction): Checked[Board] = action match {
     case PlayStone(at, stone) =>
-      val stack = Stack.of(stone)
-      val newPositions = setStackAt(boardPositions, at, stack)
-      Board(size, newPositions).right
+      stackAt(at).flatMap {
+        case s if s.nonEmpty => InvalidMove(s"A stack already exists at $at").left
+        case _ =>
+          val stack = Stack.of(stone)
+          val newPositions = setStackAt(boardPositions, at, stack)
+          Board(size, newPositions).right
+      }
     case m: Move => doMoveAction(m)
   }
 
@@ -127,7 +132,9 @@ case class Board(size: Int, boardPositions: BoardLayout) {
     for {
       stack <- stackAt(m.from)
       count = m.count.getOrElse(stack.size)
-      _ <- (count <= size).guard(InvalidMove(s"Move wants to carry $count, which is larger than the board size ($size)"))
+      _ <- (count <= size).guard(
+        InvalidMove(s"Move wants to carry $count, which is larger than the board size ($size)")
+      )
       _ <- stack.nonEmpty.guard(InvalidMove(s"Cannot move empty stack at $m.from"))
       finalPositions <- moveStack(stack, count)
     } yield Board(size, finalPositions)
@@ -192,14 +199,14 @@ case class Stack(pieces: Vector[Stone]) {
   def size: Int = pieces.size
   def isEmpty: Boolean = pieces.isEmpty
   def nonEmpty: Boolean = !isEmpty
-  def toTps: String = {
-    if (pieces.isEmpty) "x" else
+  def toTps: String =
+    if (pieces.isEmpty) "x"
+    else
       pieces.map {
         case FlatStone(owner) => owner.fold("2", "1")
         case StandingStone(owner) => owner.fold("2S", "1S")
         case Capstone(owner) => owner.fold("2C", "1C")
       } mkString ""
-  }
 }
 
 object Player {
