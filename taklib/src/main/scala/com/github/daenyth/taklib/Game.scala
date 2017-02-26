@@ -66,7 +66,7 @@ object Game {
           .guard(InvalidMove(s"Move final position ${m.finalPosition} is not on the board"))
         hasStart *> hasEnd
     }
-  private def actingPlayerControlsStack(board: Board, action: TurnAction): Checked[Unit] =
+  private[taklib] def actingPlayerControlsStack(board: Board, action: TurnAction): Checked[Unit] =
     action match {
       case play: PlayStone => ().right
       case m: Move =>

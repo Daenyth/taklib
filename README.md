@@ -32,6 +32,12 @@ Taklib is currently alpha status - there may be bugs and the api is not stable y
 - Create games with empty boards or boards from TPS
 - Play moves that are checked for validity
 - Detect all game-ending conditions
+- Run a rudimentary interactive mode on the command line
+
+## Interactive game on the command line
+```
+sbt takcli/run
+```
 
 ## Goals
 - Easy to use
