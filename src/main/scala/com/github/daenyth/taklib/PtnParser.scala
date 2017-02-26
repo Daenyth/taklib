@@ -38,7 +38,7 @@ object PtnParser extends RegexParsers {
 
   val moveStones: Parser[Player => Move] = {
     val count = "[12345678]".r ^^ { _.toInt }
-    val drops = "[12345678]+".r ^^ { _.toVector.map(_.toInt) }
+    val drops = "[12345678]+".r ^^ { _.toVector.map(_.toString.toInt) }
     (count.? ~ boardIndex ~ moveDirection ~ drops.?) ^^ {
       case (count: Option[Int]) ~
             (idx: BoardIndex) ~
