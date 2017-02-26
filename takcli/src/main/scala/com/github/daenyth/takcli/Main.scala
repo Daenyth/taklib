@@ -41,7 +41,13 @@ object Main {
   def runAction(nextPlayer: Player): Task[TurnAction] = promptAction.map(_(nextPlayer))
 
   def printGame(g: Game) = Task {
-    println(s"Move ${g.turnNumber}")
+    val nextPlayInfo = g.turnNumber match {
+      case 1 => "White to play (Black stone)"
+      case 2 => "Black to play (White stone)"
+      case n if n % 2 == 0 => "Black to play"
+      case _ => "White to play"
+    }
+    println(s"Move ${g.turnNumber} - $nextPlayInfo")
     print(pretty(g))
     println()
   }

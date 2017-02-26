@@ -60,7 +60,7 @@ case class Board(size: Int, boardPositions: BoardLayout) {
   def applyAction(action: TurnAction): Checked[Board] = action match {
     case PlayStone(at, stone) =>
       stackAt(at).flatMap {
-        case s if s.nonEmpty => InvalidMove(s"A stack already exists at $at").left
+        case s if s.nonEmpty => InvalidMove(s"A stack already exists at ${at.name}").left
         case _ =>
           val stack = Stack.of(stone)
           val newPositions = setStackAt(boardPositions, at, stack)
