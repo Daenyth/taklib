@@ -210,12 +210,7 @@ class GameTest
       "e4",
       "5c1>14",
       "e3"
-    ).map { mv =>
-      PtnParser.parse(PtnParser.turnAction, mv) match {
-        case PtnParser.Success(result, _) => \/.right(result)
-        case err: PtnParser.NoSuccess => \/.left(err.msg)
-      }
-    }
+    ).map { PtnParser.parseEither(PtnParser.turnAction, _) }
     val toActions: Vector[Player => TurnAction] = maybeMoves.sequenceU.value
     val actions = toActions.zipWithIndex.map {
       case (action, 0) => action(Black)

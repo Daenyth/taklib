@@ -1,6 +1,7 @@
 package com.github.daenyth.taklib
 
 import scala.util.parsing.combinator.RegexParsers
+import scalaz.\/
 
 object PtnParser extends RegexParsers {
   val boardIndex: Parser[BoardIndex] = "([abcdefgh])([12345678])".r ^^ { str =>
@@ -48,4 +49,10 @@ object PtnParser extends RegexParsers {
     }
   }
   val turnAction: Parser[Player => TurnAction] = playStone | moveStones
+
+  def parseEither[T](parser: PtnParser.Parser[T], ptn: String): String \/ T =
+    parse(parser, ptn) match {
+      case Success(result, _) => \/.right(result)
+      case err: NoSuccess => \/.left(err.msg)
+    }
 }
