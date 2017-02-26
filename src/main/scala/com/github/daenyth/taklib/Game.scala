@@ -53,7 +53,7 @@ case object DoubleRoad extends RoadResult
 case object Draw extends FlatResult
 
 object Game {
-  def actionIndexIsValid(board: Board, action: TurnAction): Checked[Unit] =
+  private def actionIndexIsValid(board: Board, action: TurnAction): Checked[Unit] =
     action match {
       case play: PlayStone =>
         board.hasIndex(play.at).guard(InvalidMove(s"${play.at} is not on the board"))
@@ -66,7 +66,7 @@ object Game {
           .guard(InvalidMove(s"Move final position ${m.finalPosition} is not on the board"))
         hasStart *> hasEnd
     }
-  def actingPlayerControlsStack(board: Board, action: TurnAction): Checked[Unit] =
+  private def actingPlayerControlsStack(board: Board, action: TurnAction): Checked[Unit] =
     action match {
       case play: PlayStone => ().right
       case m: Move =>
@@ -125,12 +125,13 @@ case class Game private (size: Int, turnNumber: Int, history: NonEmptyList[(Game
 
   def takeTurn(action: TurnAction): Checked[Game] =
     for {
+      _ <- winner.fold(().right[InvalidMove])(end => InvalidMove(s"Game is over: $end").left)
       _ <- moveIsValid(action)
       nextState <- currentBoard.applyAction(action)
       newHistory = (action, nextState) <:: history
     } yield this.copy(history = newHistory, turnNumber = this.turnNumber + 1)
 
-  def moveIsValid(action: TurnAction): Checked[Unit] =
+  private def moveIsValid(action: TurnAction): Checked[Unit] =
     for {
       _ <- (action.player == nextPlayer)
         .guard(InvalidMove(s"${action.player} is not the correct color for this turn"))
@@ -179,10 +180,11 @@ case class Game private (size: Int, turnNumber: Int, history: NonEmptyList[(Game
     val blackIndexes = blackRoadStones.map(_._1)
     val whiteGraph = mkGraph(whiteIndexes.toSet)
     val blackGraph = mkGraph(blackIndexes.toSet)
+    // We only look at two edges because getting the opposites for each position will cover the other edges
     val edgeIndexes = for {
       rank <- 1 to size
       file <- 1 to size
-      if rank == 1 || file == 1 || rank == size || file == size
+      if rank == 1 || file == 1
     } yield BoardIndex(rank, file)
     def getEdgePath(g: Graph[BoardIndex, UnDiEdge]): IndexedSeq[g.Path] =
       for {
