@@ -138,7 +138,7 @@ case class Board(size: Int, boardPositions: BoardLayout) {
       .leftMap(_ => InvalidMove(s"$index is not on the board"))
 
   def hasIndex(index: BoardIndex): Boolean =
-    index.rank < size && index.rank >= 0 && index.file < size && index.file >= 0
+    index.rank <= size && index.rank >= 0 && index.file <= size && index.file >= 0
 
   /** Serialize board state to Tak Positional System */
   def toTPS: String = ???

@@ -128,7 +128,7 @@ case class Game private (size: Int, turnNumber: Int, history: NonEmptyList[(Game
       _ <- moveIsValid(action)
       nextState <- currentBoard.applyAction(action)
       newHistory = (action, nextState) <:: history
-    } yield this.copy(history = newHistory)
+    } yield this.copy(history = newHistory, turnNumber = this.turnNumber + 1)
 
   def moveIsValid(action: TurnAction): Checked[Unit] =
     for {
