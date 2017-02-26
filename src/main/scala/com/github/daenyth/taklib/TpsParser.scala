@@ -1,6 +1,7 @@
 package com.github.daenyth.taklib
 
 import scala.annotation.tailrec
+import scala.util.Try
 import scala.util.parsing.combinator.RegexParsers
 
 object TpsParser extends RegexParsers {
@@ -30,8 +31,9 @@ object TpsParser extends RegexParsers {
       }
       Vector(Stack(go(owners, Nil, finalStone).toVector))
     }
-    val empty = """x(\d)""".r ^^ { n =>
-      Vector.fill(n.toInt)(Stack.empty)
+    val empty = """x\d?""".r ^^ { xn =>
+      val n = xn.substring(1)
+      Vector.fill(Try(n.toInt).getOrElse(1))(Stack.empty)
     }
     val space: Parser[Vector[Stack]] = empty | piece
     val row: Parser[Vector[Stack]] = rep1sep(space, ",") ^^ { xs: List[Vector[Stack]] =>
