@@ -7,7 +7,7 @@ object PtnParser extends RegexParsers {
   val boardIndex: Parser[BoardIndex] = "([abcdefgh])([12345678])".r ^^ { str =>
     val rankChr = str.charAt(0)
     val rank = BoardIndex.rankNames.indexOf(rankChr) + 1
-    val file = str.charAt(1).toInt
+    val file = str.charAt(1).toString.toInt
     BoardIndex(rank, file)
   }
   val playFlat: Parser[Player => PlayFlat] =
