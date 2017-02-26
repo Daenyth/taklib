@@ -1,5 +1,5 @@
 # taklib
-A scala library for the [Tak](cheapass.com/tak/) board game
+A scala library for the [Tak](http://cheapass.com/tak/) board game
 
 ## Example usage
 
