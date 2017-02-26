@@ -1,5 +1,7 @@
 package com.github.daenyth.taklib
 
+import scala.util.control.NoStackTrace
+
 sealed trait GameAction
 case class StartGameWithBoard(board: Board) extends GameAction
 sealed trait TurnAction extends GameAction {
@@ -66,4 +68,4 @@ case object Right extends MoveDirection { val name = ">" }
 case object Up extends MoveDirection { val name = "+" }
 case object Down extends MoveDirection { val name = "-" }
 
-case class InvalidMove(reason: String) extends Exception(reason)
+case class InvalidMove(reason: String) extends Exception(reason) with NoStackTrace

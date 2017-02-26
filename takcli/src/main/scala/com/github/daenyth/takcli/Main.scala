@@ -3,6 +3,7 @@ package com.github.daenyth.takcli
 import com.github.daenyth.taklib._
 
 import scala.io.StdIn
+import scala.util.control.NoStackTrace
 import scalaz.concurrent.Task
 import scalaz.syntax.monad._
 
@@ -73,5 +74,5 @@ object Main {
       }
 }
 
-case class PtnParseError(msg: String) extends Exception(msg)
-case object CleanExit extends Exception
+case class PtnParseError(msg: String) extends Exception(msg) with NoStackTrace
+case object CleanExit extends Exception with NoStackTrace
