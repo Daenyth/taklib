@@ -83,6 +83,7 @@ object Game {
         } yield ()
     }
   def ofSize(size: Int): Game = {
+    require(reserveSize.keySet.contains(size), s"Bad game size: $size")
     val b = Board.ofSize(size)
     Game(size, 1, NonEmptyList((StartGameWithBoard(b), b)))
   }

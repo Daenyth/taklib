@@ -8,9 +8,16 @@ import scalaz.syntax.monad._
 
 object Main {
   def main(args: Array[String]): Unit =
-    mainT.unsafePerformSync
+    mainT.handleWith {
+      case CleanExit => Task.now(println("Exiting"))
+    }.unsafePerformSync
 
-  def mainT: Task[Unit] = printStartup *> promptSize.map(Game.ofSize) >>= runGameLoop
+  def mainT: Task[Unit] = printStartup *> getInitialGame >>= runGameLoop
+
+  def getInitialGame: Task[Game] =
+    promptSize.map(Game.ofSize).handleWith {
+      case e: IllegalArgumentException => Task.now(println(e.getMessage)) *> getInitialGame
+    }
 
   def runGameLoop(g: Game): Task[Unit] = runGameTurn(g).flatMap { next =>
     next.winner.fold(runGameLoop(next))(endGame)
@@ -53,6 +60,7 @@ object Main {
   def promptAction: Task[Player => TurnAction] =
     Task(StdIn.readLine("Your Move?\n  > "))
       .flatMap { input =>
+        if (input == null) { throw CleanExit } else
         PtnParser
           .parseEither(PtnParser.turnAction, input)
           .fold(
@@ -66,3 +74,4 @@ object Main {
 }
 
 case class PtnParseError(msg: String) extends Exception(msg)
+case object CleanExit extends Exception
