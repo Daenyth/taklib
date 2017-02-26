@@ -30,12 +30,15 @@ object Main {
   }
 
   def runGameTurn(g: Game): Task[Game] =
-    for {
-      _ <- printGame(g)
-      toAction <- promptAction
-      action = toAction(g.nextPlayer)
-      next <- g.takeTurn(action).fold(Task.fail, Task.now)
-    } yield next
+    printGame(g) *> runActionLoop(g)
+
+  def runActionLoop(g: Game): Task[Game] = runAction(g.nextPlayer).flatMap { action =>
+    g.takeTurn(action).fold(Task.fail, Task.now)
+  }.handleWith {
+    case InvalidMove(reason) => Task.now(println(s"Bad move: $reason")) *> runActionLoop(g)
+  }
+
+  def runAction(nextPlayer: Player): Task[TurnAction] = promptAction.map(_(nextPlayer))
 
   def printGame(g: Game) = Task {
     println(s"Move ${g.turnNumber}")
@@ -56,18 +59,18 @@ object Main {
     }
 
   def pretty(g: Game): String =
-    g.toTps
+    g.currentBoard.toTps.replace(",", "\t").replace("/", "\n")
 
   def promptAction: Task[Player => TurnAction] =
     Task(StdIn.readLine("Your Move?\n  > "))
       .flatMap { input =>
         if (input == null) { throw CleanExit } else
-        PtnParser
-          .parseEither(PtnParser.turnAction, input)
-          .fold(
-            err => Task.fail(new PtnParseError(err)),
-            toAction => Task.now(toAction)
-          )
+          PtnParser
+            .parseEither(PtnParser.turnAction, input)
+            .fold(
+              err => Task.fail(new PtnParseError(err)),
+              toAction => Task.now(toAction)
+            )
       }
       .handleWith {
         case PtnParseError(err) => Task(println(s"Bad move: $err")) *> promptAction
