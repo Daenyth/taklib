@@ -58,8 +58,9 @@ object Main {
       case n: NumberFormatException => Task(println(s"Bad size: $n")) *> promptSize
     }
 
-  def pretty(g: Game): String =
-    g.currentBoard.toTps.replace(",", "\t").replace("/", "\n")
+  def pretty(g: Game): String = {
+    g.currentBoard.boardPositions.map(_.reverse).transpose.map(_.map(_.toTps).mkString("\t")).mkString("\n")
+  }
 
   def promptAction: Task[Player => TurnAction] =
     Task(StdIn.readLine("Your Move?\n  > "))
