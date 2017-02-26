@@ -62,7 +62,7 @@ class MoveTest extends FlatSpec with Matchers with DisjunctionValues {
       )
       .value
     val result = board.applyAction(Move(Black, j, Left, None, None))
-    result.leftValue shouldBe InvalidMove
+    result.leftValue shouldBe an[InvalidMove]
   }
 
 }

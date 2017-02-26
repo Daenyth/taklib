@@ -66,4 +66,4 @@ case object Right extends MoveDirection { val name = ">" }
 case object Up extends MoveDirection { val name = "+" }
 case object Down extends MoveDirection { val name = "-" }
 
-case object InvalidMove
+case class InvalidMove(reason: String)

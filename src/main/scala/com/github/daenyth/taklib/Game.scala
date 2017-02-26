@@ -16,7 +16,8 @@ import scalaz.syntax.foldable._
 import scalaz.syntax.order._
 import scalaz.syntax.semigroup._
 import scalaz.syntax.std.option._
-import scalaz.{Equal, NonEmptyList, Semigroup, \/}
+import scalaz.syntax.apply._
+import scalaz.{\/, Equal, NonEmptyList, Semigroup}
 
 object GameEndResult {
   implicit val gerInstance: Semigroup[GameEndResult] with Equal[GameEndResult] =
@@ -52,20 +53,34 @@ case object DoubleRoad extends RoadResult
 case object Draw extends FlatResult
 
 object Game {
-  def actionIndexIsValid(board: Board, action: TurnAction): Boolean =
+  def actionIndexIsValid(board: Board, action: TurnAction): Checked[Unit] =
     action match {
-      case play: PlayStone => board.hasIndex(play.at)
-      case m: Move => board.hasIndex(m.from) && board.hasIndex(m.finalPosition)
-    }
-  def actingPlayerControlsStack(board: Board, action: TurnAction): Boolean =
-    action match {
-      case play: PlayStone => true
+      case play: PlayStone =>
+        board.hasIndex(play.at).guard(InvalidMove(s"${play.at} is not on the board"))
       case m: Move =>
-        val equal = for {
+        val hasStart = board
+          .hasIndex(m.from)
+          .guard(InvalidMove(s"${m.from} is not on the board"))
+        val hasEnd = board
+          .hasIndex(m.finalPosition)
+          .guard(InvalidMove(s"Move final position ${m.finalPosition} is not on the board"))
+        hasStart *> hasEnd
+    }
+  def actingPlayerControlsStack(board: Board, action: TurnAction): Checked[Unit] =
+    action match {
+      case play: PlayStone => ().right
+      case m: Move =>
+        for {
           stack <- board.stackAt(m.from)
-          controller <- stack.controller.toRightDisjunction(InvalidMove)
-        } yield controller === action.player
-        equal.getOrElse(false)
+          controller <- stack.controller.toRightDisjunction(
+            InvalidMove(s"Cannot move empty Stack at ${m.from}")
+          )
+          _ <- (controller === action.player).guard(
+            InvalidMove(
+              s"${action.player} cannot move stack controlled by $controller at ${m.from}"
+            )
+          )
+        } yield ()
     }
   def ofSize(size: Int): Game = {
     val b = Board.ofSize(size)
@@ -116,16 +131,17 @@ case class Game private (size: Int, turnNumber: Int, history: NonEmptyList[(Game
     } yield this.copy(history = newHistory)
 
   def moveIsValid(action: TurnAction): Checked[Unit] =
-    (
-      action.player == nextPlayer
-        && actionIndexIsValid(currentBoard, action)
-        && actingPlayerControlsStack(currentBoard, action)
-    ).guard(InvalidMove)
+    for {
+      _ <- (action.player == nextPlayer)
+        .guard(InvalidMove(s"${action.player} is not the correct color for this turn"))
+      _ <- actionIndexIsValid(currentBoard, action)
+      _ <- actingPlayerControlsStack(currentBoard, action)
+    } yield ()
 
   def undo: Checked[Game] =
     history.tail.toNel.map { prev =>
       this.copy(turnNumber = this.turnNumber - 1, history = prev).right
-    } getOrElse InvalidMove.left
+    } getOrElse InvalidMove("Cannot undo when at the beginning of the game").left
 
   /** Serialize game history to Portable Tak Notation */
   def toPTN: String = ???

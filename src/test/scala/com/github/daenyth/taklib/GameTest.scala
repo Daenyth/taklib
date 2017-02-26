@@ -76,13 +76,13 @@ class GameTest
   "A player" should "be able to move a stack they control" in {
     val i = BoardIndex(1, 1)
     val board = Board.ofSize(5).applyAction(PlayFlat(White, i)).value
-    Game.actingPlayerControlsStack(board, Move(White, i, Right, None, None)) shouldBe true
+    Game.actingPlayerControlsStack(board, Move(White, i, Right, None, None)) shouldBe 'right
   }
 
   "A player" should "not be able to move a stack they don't control" in {
     val i = BoardIndex(1, 1)
     val board = Board.ofSize(5).applyAction(PlayFlat(Black, i)).value
-    Game.actingPlayerControlsStack(board, Move(White, i, Right, None, None)) shouldBe false
+    Game.actingPlayerControlsStack(board, Move(White, i, Right, None, None)) shouldBe 'left
   }
 
   "The first move" should "be taken with a black flatstone" in {

@@ -14,7 +14,7 @@ import scalaz.{-\/, Equal, \/, \/-}
 object Board {
 
   type BoardLayout = Vector[Vector[Stack]]
-  type Checked[A] = InvalidMove.type \/ A
+  type Checked[A] = InvalidMove \/ A
 
   /** Build a board from Tak Positional System; -\/ if tps is invalid */
   def fromTps(tps: String): String \/ Board = TpsParser.parse(TpsParser.board, tps) match {
@@ -35,18 +35,18 @@ object Board {
                              index: BoardIndex,
                              stack: Stack): Checked[BoardLayout] = {
     val (i, j) = (index.rank - 1, index.file - 1)
-    val stackAtIdx = \/.fromTryCatchNonFatal(positions(i)(j)).leftMap(_ => InvalidMove)
+    val stackAtIdx = \/.fromTryCatchNonFatal(positions(i)(j)).leftMap(_ => InvalidMove(s"$index is not on the board"))
     val newStack: Checked[Stack] = stackAtIdx.flatMap {
       case Stack(Vector()) => stack.right
       case Stack(pieces) =>
         pieces.last match {
-          case Capstone(_) => InvalidMove.left
+          case Capstone(_) => InvalidMove(s"Cannot move on top of Capstone at $index").left
           case FlatStone(_) => Stack(pieces |+| stack.pieces).right
           case StandingStone(owner) =>
             stack match {
               case Stack(Vector(c @ Capstone(_))) =>
                 Stack(pieces.init |+| Vector(FlatStone(owner), c)).right
-              case _ => InvalidMove.left
+              case _ => InvalidMove(s"Cannot move on top of Standing Stone at $index").left
             }
         }
     }
@@ -66,7 +66,7 @@ case class Board(size: Int, boardPositions: BoardLayout) {
 
   def applyActions(actions: Seq[TurnAction]): Checked[Board] =
     actions.headOption
-      .toRightDisjunction(InvalidMove)
+      .toRightDisjunction(InvalidMove("Tried to apply an empty seq of actions"))
       .flatMap(a => applyActions(a, actions.tail: _*))
 
   @tailrec
@@ -127,15 +127,15 @@ case class Board(size: Int, boardPositions: BoardLayout) {
     for {
       stack <- stackAt(m.from)
       count = m.count.getOrElse(stack.size)
-      _ <- (count <= size).guard(InvalidMove)
-      _ <- stack.nonEmpty.guard(InvalidMove)
+      _ <- (count <= size).guard(InvalidMove(s"Move wants to carry $count, which is larger than the board size ($size)"))
+      _ <- stack.nonEmpty.guard(InvalidMove(s"Cannot move empty stack at $m.from"))
       finalPositions <- moveStack(stack, count)
     } yield Board(size, finalPositions)
   }
 
   def stackAt(index: BoardIndex): Checked[Stack] =
     \/.fromTryCatchNonFatal(boardPositions(index.rank - 1)(index.file - 1))
-      .leftMap(_ => InvalidMove)
+      .leftMap(_ => InvalidMove(s"$index is not on the board"))
 
   def hasIndex(index: BoardIndex): Boolean =
     index.rank < size && index.rank >= 0 && index.file < size && index.file >= 0
