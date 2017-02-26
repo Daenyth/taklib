@@ -144,7 +144,18 @@ case class Game private (size: Int, turnNumber: Int, history: NonEmptyList[(Game
     } getOrElse InvalidMove("Cannot undo when at the beginning of the game").left
 
   /** Serialize game history to Portable Tak Notation */
-  def toPTN: String = ???
+  def toPtn: String = ???
+
+  /** Serialize the current board state to TPS */
+  def toTps: String = {
+    val turn: Int = turnNumber / 2
+    val move = nextPlayer.fold(1, 2)
+    val rows = currentBoard.boardPositions.map { row =>
+      row.map(_.toTps)
+    }
+    val board = rows.map(_.mkString(",")).mkString("/")
+    s"[ $board $turn $move ]"
+  }
 
   def winner: Option[GameEndResult] =
     (roads: Vector[GameEndResult]).suml1Opt |+| flatWin

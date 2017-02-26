@@ -90,4 +90,22 @@ class GameTest
     val result = game.takeTurn(PlayFlat(Black, BoardIndex(1, 1)))
     result shouldBe 'right
   }
+
+  "A TPS string" should "round trip through Game" in {
+    val tps = "[ 1,2,1,2,1/2,1,2,1,2/1,2,1,2,1/2,1,2,1,2/1,2,1,2,1 12 2 ]"
+    val game = Game.fromTps(tps).value
+    game.toTps shouldEqual tps
+  }
+
+  "A game's tps" should "round trip to the same game" in {
+    val game1 = (for {
+      a <- Game.ofSize(5).takeTurn(PlayFlat(Black, BoardIndex(1, 1)))
+      b <- a.takeTurn(PlayFlat(White, BoardIndex(5,1)))
+    } yield b).value
+    val tps = game1.toTps
+    val game2 = Game.fromTps(tps).value
+    game1.size shouldEqual game2.size
+    game1.turnNumber shouldEqual game2.turnNumber
+    game1.currentBoard shouldEqual game2.currentBoard
+  }
 }

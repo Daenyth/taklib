@@ -187,6 +187,14 @@ case class Stack(pieces: Vector[Stone]) {
   def size: Int = pieces.size
   def isEmpty: Boolean = pieces.isEmpty
   def nonEmpty: Boolean = !isEmpty
+  def toTps: String = {
+    if (pieces.isEmpty) "x" else
+      pieces.map {
+        case FlatStone(owner) => owner.fold("2", "1")
+        case StandingStone(owner) => owner.fold("2S", "1S")
+        case Capstone(owner) => owner.fold("2C", "1C")
+      } mkString ""
+  }
 }
 
 object Player {
