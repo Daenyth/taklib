@@ -108,7 +108,7 @@ case class Board(size: Int, boardPositions: BoardLayout) {
         stack.pieces.splitAt(stack.size - count)
       assert(
         movingStack.length == count,
-        s"moving: $movingStack, remaining: $remainingStack, inStack: $stack"
+        s"""Error applying $m to Board.fromTps("${this.toTps}")\nThis is an internal bug - please report it on github"""
       )
 
       val positionsWithoutMovedStones =
@@ -141,7 +141,12 @@ case class Board(size: Int, boardPositions: BoardLayout) {
     index.rank <= size && index.rank >= 0 && index.file <= size && index.file >= 0
 
   /** Serialize board state to Tak Positional System */
-  def toTPS: String = ???
+  def toTps: String = {
+    val rows = boardPositions.map { row =>
+      row.map(_.toTps)
+    }
+    rows.map(_.mkString(",")).mkString("/")
+  }
 }
 
 object BoardIndex {

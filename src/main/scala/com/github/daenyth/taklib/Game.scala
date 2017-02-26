@@ -150,10 +150,7 @@ case class Game private (size: Int, turnNumber: Int, history: NonEmptyList[(Game
   def toTps: String = {
     val turn: Int = turnNumber / 2
     val move = nextPlayer.fold(1, 2)
-    val rows = currentBoard.boardPositions.map { row =>
-      row.map(_.toTps)
-    }
-    val board = rows.map(_.mkString(",")).mkString("/")
+    val board = currentBoard.toTps
     s"[ $board $turn $move ]"
   }
 
