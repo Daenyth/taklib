@@ -30,4 +30,14 @@ class BoardTest extends FlatSpec with Matchers {
       BoardIndex(1, 5)
     )
   }
+
+  "A board" should "have all indexes under its size" in {
+    val size = 5
+    val indexes = for {
+      rank <- 1 to size
+      file <- 1 to size
+    } yield BoardIndex(rank, file)
+    val board = Board.ofSize(size)
+    indexes.forall(board.hasIndex) shouldBe true
+  }
 }
