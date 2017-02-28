@@ -52,10 +52,10 @@ case class Move(player: Player,
   def finalPosition: BoardIndex = {
     val moveDistance = drops.map(_.length).getOrElse(1)
     direction match {
-      case Left => from.copy(rank = from.rank - moveDistance)
-      case Right => from.copy(rank = from.rank + moveDistance)
-      case Up => from.copy(file = from.file + moveDistance)
-      case Down => from.copy(file = from.file - moveDistance)
+      case Left => from.copy(file = from.file - moveDistance)
+      case Right => from.copy(file = from.file + moveDistance)
+      case Up => from.copy(rank = from.rank + moveDistance)
+      case Down => from.copy(rank = from.rank - moveDistance)
     }
   }
 }

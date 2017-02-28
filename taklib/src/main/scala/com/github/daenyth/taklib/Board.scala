@@ -27,14 +27,14 @@ object Board {
 
   private def setStackAt(positions: BoardLayout, index: BoardIndex, stack: Stack): BoardLayout = {
     // TODO uses lenses instead of manual indexing/updating
-    val (i, j) = (index.rank - 1, index.file - 1)
+    val (i, j) = (index.file - 1, index.rank - 1)
     positions.updated(i, positions(i).updated(j, stack))
   }
 
   private def combineStackAt(positions: BoardLayout,
                              index: BoardIndex,
                              stack: Stack): Checked[BoardLayout] = {
-    val (i, j) = (index.rank - 1, index.file - 1)
+    val (i, j) = (index.file - 1, index.rank - 1)
     val stackAtIdx = \/.fromTryCatchNonFatal(positions(i)(j))
       .leftMap(_ => InvalidMove(s"$index is not on the board"))
     val newStack: Checked[Stack] = stackAtIdx.flatMap {
@@ -141,11 +141,11 @@ case class Board(size: Int, boardPositions: BoardLayout) {
   }
 
   def stackAt(index: BoardIndex): Checked[Stack] =
-    \/.fromTryCatchNonFatal(boardPositions(index.rank - 1)(index.file - 1))
+    \/.fromTryCatchNonFatal(boardPositions(index.file - 1)(index.rank - 1))
       .leftMap(_ => InvalidMove(s"$index is not on the board"))
 
   def hasIndex(index: BoardIndex): Boolean =
-    index.rank <= size && index.rank >= 0 && index.file <= size && index.file >= 0
+    index.file <= size && index.file >= 0 && index.rank <= size && index.rank >= 0
 
   /** Serialize board state to Tak Positional System */
   def toTps: String = {
@@ -160,32 +160,32 @@ object BoardIndex {
   private[taklib] val rankNames = Vector('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h')
 }
 // Rank is normally 'a'..'e'/'f' depending on board size, Int here for convenience.
-case class BoardIndex(rank: Int, file: Int) {
+case class BoardIndex(file: Int, rank: Int) {
   def oppositeIndexes(boardSize: Int): IndexedSeq[BoardIndex] = {
     val left =
-      if (rank == 1) for (n <- 1 to boardSize) yield BoardIndex(boardSize, n) else Vector.empty
+      if (file == 1) for (n <- 1 to boardSize) yield BoardIndex(boardSize, n) else Vector.empty
     val bottom =
-      if (file == 1) for (n <- 1 to boardSize) yield BoardIndex(n, boardSize) else Vector.empty
+      if (rank == 1) for (n <- 1 to boardSize) yield BoardIndex(n, boardSize) else Vector.empty
     val right =
-      if (rank == boardSize) for (n <- 1 to boardSize) yield BoardIndex(1, n) else Vector.empty
+      if (file == boardSize) for (n <- 1 to boardSize) yield BoardIndex(1, n) else Vector.empty
     val top =
-      if (file == boardSize) for (n <- 1 to boardSize) yield BoardIndex(n, 1) else Vector.empty
+      if (rank == boardSize) for (n <- 1 to boardSize) yield BoardIndex(n, 1) else Vector.empty
     left ++ bottom ++ right ++ top
   }
 
   import BoardIndex._
   // This will throw for larger than 8x8 but that's not even defined in the rules anyway
-  def name: String = s"${rankNames(rank - 1)}$file"
+  def name: String = s"${rankNames(file - 1)}$rank"
   def neighbor(d: MoveDirection): BoardIndex =
     d match {
-      case Left => copy(rank = rank - 1)
-      case Right => copy(rank = rank + 1)
-      case Up => copy(file = file + 1)
-      case Down => copy(file = file - 1)
+      case Left => copy(file = file - 1)
+      case Right => copy(file = file + 1)
+      case Up => copy(rank = rank + 1)
+      case Down => copy(rank = rank - 1)
     }
   def allNeighbors(boardSize: Int): List[BoardIndex] =
     List(neighbor(Left), neighbor(Right), neighbor(Up), neighbor(Down)).filter { idx =>
-      idx.rank >= 1 && idx.rank <= boardSize && idx.file >= 1 && idx.file <= boardSize
+      idx.file >= 1 && idx.file <= boardSize && idx.rank >= 1 && idx.rank <= boardSize
     }
 }
 
