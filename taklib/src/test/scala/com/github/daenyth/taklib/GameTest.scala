@@ -27,7 +27,8 @@ class GameTest
     with Matchers
     with PropertyCheckers
     with OptionValues
-    with DisjunctionValues {
+    with DisjunctionValues
+    with MoveResultValues {
   import GameTest._
 
   "GameEndResult" should "be a lawful semigroup" in {
@@ -45,7 +46,7 @@ class GameTest
   }
 
   "A new game" should "not have a winner" in {
-    val game = Game.ofSize(5)
+    val game = Game.ofSize(5).value
     game.winner shouldBe None
   }
 
@@ -79,19 +80,21 @@ class GameTest
   "A player" should "be able to move a stack they control" in {
     val i = BoardIndex(1, 1)
     val board = Board.ofSize(5).applyAction(PlayFlat(White, i)).value
-    Game.actingPlayerControlsStack(board, Move(White, i, Right, None, None)) shouldBe 'right
+    val game = Game.fromBoard(board)
+    DefaultRules.actingPlayerControlsStack(game, Move(White, i, Right, None, None)) shouldBe None
   }
 
   "A player" should "not be able to move a stack they don't control" in {
     val i = BoardIndex(1, 1)
     val board = Board.ofSize(5).applyAction(PlayFlat(Black, i)).value
-    Game.actingPlayerControlsStack(board, Move(White, i, Right, None, None)) shouldBe 'left
+    val game = Game.fromBoard(board)
+    DefaultRules.actingPlayerControlsStack(game, Move(White, i, Right, None, None)) shouldBe 'nonEmpty
   }
 
   "The first move" should "be taken with a black flatstone" in {
-    val game = Game.ofSize(5)
+    val game = Game.ofSize(5).value
     val result = game.takeTurn(PlayFlat(Black, BoardIndex(1, 1)))
-    result shouldBe 'right
+    result shouldBe an[OkMove[_]]
   }
 
   "A TPS string" should "round trip through Game" in {
@@ -102,7 +105,7 @@ class GameTest
 
   "A game's tps" should "round trip to the same game" in {
     val game1 = (for {
-      a <- Game.ofSize(5).takeTurn(PlayFlat(Black, BoardIndex(1, 1)))
+      a <- Game.ofSize(5).value.takeTurn(PlayFlat(Black, BoardIndex(1, 1)))
       b <- a.takeTurn(PlayFlat(White, BoardIndex(5, 1)))
     } yield b).value
     val tps = game1.toTps
@@ -218,7 +221,7 @@ class GameTest
       case (action, n) if n % 2 == 0 => action(White)
       case (action, _) => action(Black)
     }
-    val game = actions.foldLeftM(Game.ofSize(6)) { (game, action) => game.takeTurn(action) }.value
+    val game = actions.foldLeftM(Game.ofSize(6).value) { (game, action) => game.takeTurn(action) }.value
     game.winner shouldEqual Some(FlatWin(White))
   }
 }

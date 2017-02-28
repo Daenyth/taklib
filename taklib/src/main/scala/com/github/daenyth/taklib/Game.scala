@@ -1,10 +1,9 @@
 package com.github.daenyth.taklib
 
-import com.github.daenyth.taklib.Board.Checked
 import com.github.daenyth.taklib.BooleanOps._
+import com.github.daenyth.taklib.RuleSet.GameRule
 
 import scala.annotation.tailrec
-import scala.collection.immutable.{::, Nil}
 import scalax.collection.GraphEdge.UnDiEdge
 import scalax.collection.immutable.Graph
 import scalaz.Ordering.{EQ, GT, LT}
@@ -15,9 +14,7 @@ import scalaz.syntax.either._
 import scalaz.syntax.foldable._
 import scalaz.syntax.order._
 import scalaz.syntax.semigroup._
-import scalaz.syntax.std.option._
-import scalaz.syntax.apply._
-import scalaz.{\/, Equal, NonEmptyList, Semigroup}
+import scalaz.{Equal, NonEmptyList, Semigroup, \/}
 
 object GameEndResult {
   implicit val gerInstance: Semigroup[GameEndResult] with Equal[GameEndResult] =
@@ -52,45 +49,108 @@ case class FlatWin(player: Player) extends FlatResult
 case object DoubleRoad extends RoadResult
 case object Draw extends FlatResult
 
-object Game {
-  private def actionIndexIsValid(board: Board, action: TurnAction): Checked[Unit] =
+object RuleSet {
+  type GameRule = (Game, TurnAction) => Option[InvalidMove]
+}
+
+trait RuleSet {
+
+  def check(game: Game, action: TurnAction): Option[InvalidMove] =
+    rules.view.map(_(game, action)).collectFirst {
+      case Some(reason) => reason
+    }
+
+  val rules: Vector[GameRule]
+
+  /** board size -> (stones, capstones) */
+  val stoneCounts: Map[Int, (Int, Int)]
+}
+
+object DefaultRules extends RuleSet {
+
+  val actionIndexIsValid: GameRule = { (game, action) =>
+    val board = game.currentBoard
     action match {
       case play: PlayStone =>
-        board.hasIndex(play.at).guard(InvalidMove(s"${play.at} is not on the board"))
+        board.hasIndex(play.at).orElse(InvalidMove(s"${play.at} is not on the board"))
       case m: Move =>
         val hasStart = board
           .hasIndex(m.from)
-          .guard(InvalidMove(s"${m.from} is not on the board"))
+          .orElse(InvalidMove(s"${m.from} is not on the board"))
         val hasEnd = board
           .hasIndex(m.finalPosition)
-          .guard(InvalidMove(s"Move final position ${m.finalPosition} is not on the board"))
-        hasStart *> hasEnd
+          .orElse(InvalidMove(s"Move final position ${m.finalPosition} is not on the board"))
+        hasStart orElse hasEnd
     }
-  private[taklib] def actingPlayerControlsStack(board: Board, action: TurnAction): Checked[Unit] =
-    action match {
-      case play: PlayStone => ().right
-      case m: Move =>
-        for {
-          stack <- board.stackAt(m.from)
-          controller <- stack.controller.toRightDisjunction(
-            InvalidMove(s"Cannot move empty Stack at ${m.from}")
-          )
-          _ <- (controller === action.player).guard(
-            InvalidMove(
-              s"${action.player} cannot move stack controlled by $controller at ${m.from}"
-            )
-          )
-        } yield ()
-    }
-  def ofSize(size: Int): Game = {
-    require(reserveSize.keySet.contains(size), s"Bad game size: $size")
-    val b = Board.ofSize(size)
-    Game(size, 1, NonEmptyList((StartGameWithBoard(b), b)))
   }
+
+  val actingPlayerControlsStack: GameRule = { (game, action) =>
+    val board = game.currentBoard
+    action match {
+      case play: PlayStone => None
+      case m: Move =>
+        board
+          .stackAt(m.from) match {
+          case i: InvalidMove => Some(i)
+          case _: GameOver => None
+          case OkMove(stack) =>
+            stack.controller match {
+              case None =>
+                Option(InvalidMove(s"Cannot move empty Stack at ${m.from}"))
+              case Some(controller) =>
+                (controller === action.player)
+                  .orElse(
+                    InvalidMove(
+                      s"${action.player} cannot move stack controlled by $controller at ${m.from}"
+                    )
+                  )
+            }
+
+        }
+    }
+  }
+
+  val playerOwnsStone: GameRule = { (game, action) =>
+    (action.player == game.nextPlayer)
+      .orElse(InvalidMove(s"${action.player} is not the correct color for this turn"))
+  }
+
+  override val rules: Vector[GameRule] = Vector(
+    actionIndexIsValid,
+    actingPlayerControlsStack,
+    playerOwnsStone
+  )
+
+  override val stoneCounts: Map[Int, (Int, Int)] = Map(
+    3 -> ((10, 0)),
+    4 -> ((15, 0)),
+    5 -> ((21, 1)),
+    6 -> ((30, 1)),
+    8 -> ((50, 2))
+  )
+}
+
+object Game {
+
+  def ofSize(size: Int): String \/ Game = ofSize(size, DefaultRules)
+
+  def ofSize(size: Int, rules: RuleSet): String \/ Game =
+    rules.stoneCounts.keySet
+      .contains(size)
+      .guard(s"Bad game size: $size")
+      .map { _ =>
+        val b = Board.ofSize(size)
+        new Game(size, 1, rules, NonEmptyList((StartGameWithBoard(b), b)))
+      }
 
   // Start at turn 3 to make the "play opponent's stone" rule easier
   def fromBoard(board: Board, turnNumber: Int = 3): Game =
-    Game(board.size, turnNumber, NonEmptyList((StartGameWithBoard(board), board)))
+    new Game(
+      board.size,
+      turnNumber,
+      DefaultRules,
+      NonEmptyList((StartGameWithBoard(board), board))
+    )
 
   def fromPtn(ptn: String): String \/ Game = ???
 
@@ -103,19 +163,15 @@ object Game {
       case err: TpsParser.NoSuccess => err.msg.left
     }
 
-  /** board size -> (stones, capstones) */
-  val reserveSize: Map[Int, (Int, Int)] = Map(
-    3 -> ((10, 0)),
-    4 -> ((15, 0)),
-    5 -> ((21, 1)),
-    6 -> ((30, 1)),
-    8 -> ((50, 2))
-  )
 }
 
 // TODO Eventually change NEL to a tree zipper to allow for branching game history (unlimited rollback-rollforward)
-case class Game private (size: Int, turnNumber: Int, history: NonEmptyList[(GameAction, Board)]) {
-  import Game._
+class Game private (val size: Int,
+                    val turnNumber: Int,
+                    val rules: RuleSet,
+                    val history: NonEmptyList[(GameAction, Board)]) {
+
+  private val reserveCount = rules.stoneCounts(size)
   def currentBoard: Board = history.head._2
   def nextPlayer: Player = turnNumber match {
     case 1 => Black
@@ -124,26 +180,18 @@ case class Game private (size: Int, turnNumber: Int, history: NonEmptyList[(Game
     case _ => Black
   }
 
-  def takeTurn(action: TurnAction): Checked[Game] =
-    for {
-      _ <- winner.fold(().right[InvalidMove])(end => InvalidMove(s"Game is over: $end").left)
-      _ <- moveIsValid(action)
-      nextState <- currentBoard.applyAction(action)
-      newHistory = (action, nextState) <:: history
-    } yield this.copy(history = newHistory, turnNumber = this.turnNumber + 1)
+  def takeTurn(action: TurnAction): MoveResult[Game] =
+    rules.check(this, action).getOrElse {
+      currentBoard.applyAction(action).map { nextState =>
+        val newHistory = (action, nextState) <:: history
+        new Game(size, turnNumber + 1, rules, newHistory)
+      }
+    }
 
-  private def moveIsValid(action: TurnAction): Checked[Unit] =
-    for {
-      _ <- (action.player == nextPlayer)
-        .guard(InvalidMove(s"${action.player} is not the correct color for this turn"))
-      _ <- actionIndexIsValid(currentBoard, action)
-      _ <- actingPlayerControlsStack(currentBoard, action)
-    } yield ()
-
-  def undo: Checked[Game] =
+  def undo: MoveResult[Game] =
     history.tail.toNel.map { prev =>
-      this.copy(turnNumber = this.turnNumber - 1, history = prev).right
-    } getOrElse InvalidMove("Cannot undo when at the beginning of the game").left
+      OkMove(new Game(size, turnNumber - 1, rules, prev))
+    } getOrElse InvalidMove("Cannot undo when at the beginning of the game")
 
   /** Serialize game history to Portable Tak Notation */
   def toPtn: String = ???
@@ -168,14 +216,12 @@ case class Game private (size: Int, turnNumber: Int, history: NonEmptyList[(Game
       } yield UnDiEdge(idx, n)
       Graph.from(xs, edges)
     }
-    val roadStones = for {
-      rank <- 1 to size
-      file <- 1 to size
-      index = BoardIndex(rank, file)
-      stack <- currentBoard.stackAt(index).toList
-      top <- stack.top.toList
-      if top.isRoadStone
-    } yield (index, top.owner)
+    val roadStones: Vector[(BoardIndex, Player)] = currentBoard.stacksWithIndex.flatMap { case (idx, stack) =>
+      stack.top match {
+        case Some(stone) if stone.isRoadStone => Vector(idx -> stone.owner)
+        case _ => Vector.empty
+      }
+    }
     val (whiteRoadStones, blackRoadStones) = roadStones.partition { _._2 == White }
     val whiteIndexes = whiteRoadStones.map(_._1)
     val blackIndexes = blackRoadStones.map(_._1)
@@ -214,7 +260,7 @@ case class Game private (size: Int, turnNumber: Int, history: NonEmptyList[(Game
            emptySpaceAvailable: Boolean): Option[FlatResult] =
       stacks match {
         case Nil =>
-          val reserve = { val r = reserveSize(size); r._1 + r._2 }
+          val reserve = reserveCount._1 + reserveCount._2
           // TODO carry reserve stones left on the game object
           if (!emptySpaceAvailable
               || whiteCount == reserve

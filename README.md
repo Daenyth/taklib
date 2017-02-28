@@ -11,18 +11,18 @@ import com.github.daenyth.taklib._
 val invalid: String \/ Game = Game.fromTps("invalid")
 // invalid: scalaz.\/[String,com.github.daenyth.taklib.Game] = -\/(`[' expected but `i' found)
 val game = Game.fromTps("[ 1,2,1,2,1/2,1,2,1,2/1,2,1,2,1/2,1,2,1,2/1,2,1,2,1 12 2 ]").getOrElse(throw new Exception)
-// game: com.github.daenyth.taklib.Game = Game(5,25,...
+// game: com.github.daenyth.taklib.Game = com.github.daenyth.taklib.Game@78c4cfdd
 val winner = game.winner
 // winner: Option[com.github.daenyth.taklib.GameEndResult] = Some(FlatWin(White))
 ```
 
 ```scala
-val game = Game.ofSize(6)
-// game: com.github.daenyth.taklib.Game = Game(6,1,...
+val game = Game.ofSize(6).getOrElse(throw new Exception())
+// game: com.github.daenyth.taklib.Game = com.github.daenyth.taklib.Game@5cf72de5
 val winner = game.winner
 // winner: Option[com.github.daenyth.taklib.GameEndResult] = None
-val next: InvalidMove.type \/ Game = game.takeTurn(PlayFlat(Black, BoardIndex(1, 1)))
-// next: com.github.daenyth.taklib.Board.Checked[com.github.daenyth.taklib.Game] = \/-(Game(6,1,
+val next: MoveResult[Game] = game.takeTurn(PlayFlat(Black, BoardIndex(1, 1)))
+// next: com.github.daenyth.taklib.MoveResult[com.github.daenyth.taklib.Game] = OkMove(com.github.daenyth.taklib.Game@66f6a349)
 ```
 
 ## Release status

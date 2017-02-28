@@ -1,9 +1,8 @@
 package com.github.daenyth.taklib
 
 import org.scalatest.{FlatSpec, Matchers}
-import org.typelevel.scalatest.DisjunctionValues
 
-class MoveTest extends FlatSpec with Matchers with DisjunctionValues {
+class MoveTest extends FlatSpec with Matchers with MoveResultValues {
 
   "Moving to capture" should "make a stack" in {
     val board = Board.ofSize(5)
@@ -31,7 +30,7 @@ class MoveTest extends FlatSpec with Matchers with DisjunctionValues {
       PlayFlat(White, idx),
       Move(White, idx, Left, Some(1), Some(Vector(1)))
     )
-    result shouldBe 'left
+    result shouldBe an[InvalidMove]
   }
 
   "A capstone" should "flatten standing stones by itself" in {
@@ -62,12 +61,12 @@ class MoveTest extends FlatSpec with Matchers with DisjunctionValues {
       )
       .value
     val result = board.applyAction(Move(Black, j, Left, None, None))
-    result.leftValue shouldBe an[InvalidMove]
+    result shouldBe an[InvalidMove]
   }
 
   "An existing stack" should "prevent a new stack from being played at that space" in {
     val idx = BoardIndex(1, 1)
     val board = Board.ofSize(5).applyAction(PlayFlat(White, idx)).value
-    board.applyAction(PlayFlat(White, idx)) shouldBe 'left
+    board.applyAction(PlayFlat(White, idx)) shouldBe an[InvalidMove]
   }
 }

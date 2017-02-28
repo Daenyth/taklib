@@ -8,13 +8,11 @@ import scala.collection.immutable.IndexedSeq
 import scalaz.std.vector._
 import scalaz.syntax.either._
 import scalaz.syntax.monoid._
-import scalaz.syntax.std.option._
-import scalaz.{-\/, \/, \/-, Equal}
+import scalaz.{Equal, \/}
 
 object Board {
 
   type BoardLayout = Vector[Vector[Stack]]
-  type Checked[A] = InvalidMove \/ A
 
   /** Build a board from Tak Positional System; -\/ if tps is invalid */
   def fromTps(tps: String): String \/ Board = TpsParser.parse(TpsParser.board, tps) match {
@@ -33,21 +31,21 @@ object Board {
 
   private def combineStackAt(positions: BoardLayout,
                              index: BoardIndex,
-                             stack: Stack): Checked[BoardLayout] = {
+                             stack: Stack): MoveResult[BoardLayout] = {
     val (i, j) = (index.file - 1, index.rank - 1)
-    val stackAtIdx = \/.fromTryCatchNonFatal(positions(i)(j))
-      .leftMap(_ => InvalidMove(s"$index is not on the board"))
-    val newStack: Checked[Stack] = stackAtIdx.flatMap {
-      case Stack(Vector()) => stack.right
+    val stackAtIdx: MoveResult[Stack] = \/.fromTryCatchNonFatal(positions(i)(j))
+      .fold(_ => InvalidMove(s"$index is not on the board"), OkMove.apply)
+    val newStack: MoveResult[Stack] = stackAtIdx.flatMap {
+      case Stack(Vector()) => OkMove(stack)
       case Stack(pieces) =>
         pieces.last match {
-          case Capstone(_) => InvalidMove(s"Cannot move on top of Capstone at $index").left
-          case FlatStone(_) => Stack(pieces |+| stack.pieces).right
+          case Capstone(_) => InvalidMove(s"Cannot move on top of Capstone at $index")
+          case FlatStone(_) => OkMove(Stack(pieces |+| stack.pieces))
           case StandingStone(owner) =>
             stack match {
               case Stack(Vector(c @ Capstone(_))) =>
-                Stack(pieces.init |+| Vector(FlatStone(owner), c)).right
-              case _ => InvalidMove(s"Cannot move on top of Standing Stone at $index").left
+                OkMove(Stack(pieces.init |+| Vector(FlatStone(owner), c)))
+              case _ => InvalidMove(s"Cannot move on top of Standing Stone at $index")
             }
         }
     }
@@ -56,55 +54,64 @@ object Board {
 }
 
 case class Board(size: Int, boardPositions: BoardLayout) {
+  def stacksWithIndex: Vector[(BoardIndex, Stack)] = {
+    for {
+      rank <- 0 until size
+      file <- 0 until size
+    } yield
+      BoardIndex(rank + 1, file + 1) -> boardPositions(rank)(file)
+  }.toVector
 
-  def applyAction(action: TurnAction): Checked[Board] = action match {
+  def applyAction(action: TurnAction): MoveResult[Board] = action match {
     case PlayStone(at, stone) =>
       stackAt(at).flatMap {
-        case s if s.nonEmpty => InvalidMove(s"A stack already exists at ${at.name}").left
+        case s if s.nonEmpty => InvalidMove(s"A stack already exists at ${at.name}")
         case _ =>
           val stack = Stack.of(stone)
           val newPositions = setStackAt(boardPositions, at, stack)
-          Board(size, newPositions).right
+          OkMove(Board(size, newPositions))
       }
     case m: Move => doMoveAction(m)
   }
 
-  def applyActions(actions: Seq[TurnAction]): Checked[Board] =
-    actions.headOption
-      .toRightDisjunction(InvalidMove("Tried to apply an empty seq of actions"))
-      .flatMap(a => applyActions(a, actions.tail: _*))
+  def applyActions(actions: Seq[TurnAction]): MoveResult[Board] =
+    actions.headOption.fold[MoveResult[Board]](InvalidMove("Tried to apply an empty seq of actions")) {
+      a => applyActions(a, actions.tail: _*)
+    }
 
   @tailrec
-  final def applyActions(a: TurnAction, as: TurnAction*): Checked[Board] =
+  final def applyActions(a: TurnAction, as: TurnAction*): MoveResult[Board] =
     // Explicit match instead of map/flatmap to appease @tailrec
     applyAction(a) match {
-      case e @ -\/(_) => e
-      case s @ \/-(newState) =>
+      case i: InvalidMove => i
+      case o: GameOver => o
+      case s @ OkMove(newState) =>
         as.toList match {
           case Nil => s
           case nextMove :: moreMoves => newState.applyActions(nextMove, moreMoves: _*)
         }
     }
 
-  private[taklib] def doMoveAction(m: Move): Checked[Board] = {
+  private[taklib] def doMoveAction(m: Move): MoveResult[Board] = {
     @tailrec
     def spreadStack(movingStack: Vector[Stone],
                     index: BoardIndex,
                     drops: List[Int],
-                    positions: BoardLayout): Checked[BoardLayout] =
+                    positions: BoardLayout): MoveResult[BoardLayout] =
       drops match {
-        case Nil => positions.right
+        case Nil => OkMove(positions)
         case num :: ds =>
           val (leaving, stillMoving) = movingStack.splitAt(num)
           val combined = combineStackAt(positions, index, Stack(leaving))
 
           // This match is flatMap, but inlined so that scala can see that it's tailrec
           combined match {
-            case \/-(newPositions) =>
+            case OkMove(newPositions) =>
               if (stillMoving.nonEmpty)
                 spreadStack(stillMoving, index.neighbor(m.direction), ds, newPositions)
-              else newPositions.right
-            case e @ -\/(_) => e
+              else OkMove(newPositions)
+            case i: InvalidMove => i
+            case o: GameOver => o
           }
       }
 
@@ -132,17 +139,19 @@ case class Board(size: Int, boardPositions: BoardLayout) {
     for {
       stack <- stackAt(m.from)
       count = m.count.getOrElse(stack.size)
-      _ <- (count <= size).guard(
+      _ <- (count <= size).orElse(
         InvalidMove(s"Move wants to carry $count, which is larger than the board size ($size)")
-      )
-      _ <- stack.nonEmpty.guard(InvalidMove(s"Cannot move empty stack at $m.from"))
+      ).getOrElse(OkMove(()))
+      _ <- stack.nonEmpty.orElse(InvalidMove(s"Cannot move empty stack at $m.from")).getOrElse(OkMove(()))
       finalPositions <- moveStack(stack, count)
     } yield Board(size, finalPositions)
   }
 
-  def stackAt(index: BoardIndex): Checked[Stack] =
-    \/.fromTryCatchNonFatal(boardPositions(index.file - 1)(index.rank - 1))
-      .leftMap(_ => InvalidMove(s"$index is not on the board"))
+  def stackAt(index: BoardIndex): MoveResult[Stack] =
+    \/.fromTryCatchNonFatal(boardPositions(index.file - 1)(index.rank - 1)).fold(
+      _ => InvalidMove(s"$index is not on the board"),
+      OkMove(_)
+    )
 
   def hasIndex(index: BoardIndex): Boolean =
     index.file <= size && index.file >= 0 && index.rank <= size && index.rank >= 0

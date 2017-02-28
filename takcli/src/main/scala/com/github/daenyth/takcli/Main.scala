@@ -6,6 +6,7 @@ import scala.io.StdIn
 import scala.util.control.NoStackTrace
 import scalaz.concurrent.Task
 import scalaz.syntax.monad._
+import scalaz.{-\/, \/-}
 
 object Main {
   def main(args: Array[String]): Unit =
@@ -15,13 +16,20 @@ object Main {
 
   def mainT: Task[Unit] = printStartup *> getInitialGame >>= runGameLoop
 
-  def getInitialGame: Task[Game] =
-    promptSize.map(Game.ofSize).handleWith {
-      case e: IllegalArgumentException => Task.now(println(e.getMessage)) *> getInitialGame
+  def getInitialGame: Task[Game] = promptSize.flatMap {
+    Game.ofSize(_) match {
+      case -\/(err) => Task.now(println(err)) *> getInitialGame
+      case \/-(game) => Task.now(game)
     }
+  }
 
-  def runGameLoop(g: Game): Task[Unit] = runGameTurn(g).flatMap { next =>
-    next.winner.fold(runGameLoop(next))(endGame)
+  def runGameLoop(g: Game): Task[Unit] = runGameTurn(g).flatMap {
+    case OkMove(nextState) =>
+      runGameLoop(nextState)
+    case InvalidMove(reason) =>
+      Task.now(println(s"Bad move: $reason")) *> runGameLoop(g)
+    case GameOver(result) =>
+      endGame(result)
   }
 
   def endGame(end: GameEndResult): Task[Unit] = Task {
@@ -29,14 +37,8 @@ object Main {
     println(end)
   }
 
-  def runGameTurn(g: Game): Task[Game] =
-    printGame(g) *> runActionLoop(g)
-
-  def runActionLoop(g: Game): Task[Game] = runAction(g.nextPlayer).flatMap { action =>
-    g.takeTurn(action).fold(Task.fail, Task.now)
-  }.handleWith {
-    case InvalidMove(reason) => Task.now(println(s"Bad move: $reason")) *> runActionLoop(g)
-  }
+  def runGameTurn(g: Game): Task[MoveResult[Game]] =
+    printGame(g) *> runAction(g.nextPlayer).map(g.takeTurn)
 
   def runAction(nextPlayer: Player): Task[TurnAction] = promptAction.map(_(nextPlayer))
 

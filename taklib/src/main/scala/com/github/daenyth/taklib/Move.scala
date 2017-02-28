@@ -1,6 +1,8 @@
 package com.github.daenyth.taklib
 
 import scala.util.control.NoStackTrace
+import scalaz.Monad
+
 
 sealed trait GameAction
 case class StartGameWithBoard(board: Board) extends GameAction
@@ -61,11 +63,42 @@ case class Move(player: Player,
 }
 
 
+object MoveResult {
+  implicit val moveResultInstance: Monad[MoveResult] = new Monad[MoveResult] {
+
+    override def map[A, B](fa: MoveResult[A])(f: (A) => B): MoveResult[B] =
+      fa.map(f)
+
+    override def bind[A, B](fa: MoveResult[A])(f: (A) => MoveResult[B]): MoveResult[B] =
+      fa.flatMap(f)
+
+    override def point[A](a: => A): MoveResult[A] = OkMove(a)
+  }
+}
+sealed trait MoveResult[+A] {
+  def map[B](f: A => B): MoveResult[B] = this match {
+    case OkMove(nextState) => OkMove(f(nextState))
+    case o: GameOver => o
+    case i: InvalidMove => i
+  }
+
+  def flatMap[B](f: A => MoveResult[B]): MoveResult[B] = this match {
+    case OkMove(nextState) => f(nextState)
+    case o: GameOver => o
+    case i: InvalidMove => i
+  }
+}
+case class OkMove[A](nextState: A) extends MoveResult[A]
+case class GameOver(result: GameEndResult) extends MoveResult[Nothing]
+case class InvalidMove(reason: String)
+  extends Exception(reason)
+    with MoveResult[Nothing]
+    with NoStackTrace
+
+
 
 sealed trait MoveDirection { def name: String }
 case object Left extends MoveDirection { val name = "<" }
 case object Right extends MoveDirection { val name = ">" }
 case object Up extends MoveDirection { val name = "+" }
 case object Down extends MoveDirection { val name = "-" }
-
-case class InvalidMove(reason: String) extends Exception(reason) with NoStackTrace
