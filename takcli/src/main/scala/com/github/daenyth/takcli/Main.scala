@@ -28,8 +28,8 @@ object Main {
       runGameLoop(nextState)
     case InvalidMove(reason) =>
       Task.now(println(s"Bad move: $reason")) *> runGameLoop(g)
-    case GameOver(result) =>
-      endGame(result)
+    case GameOver(result, finalState) =>
+      printGame(finalState) *> endGame(result)
   }
 
   def endGame(end: GameEndResult): Task[Unit] = Task {

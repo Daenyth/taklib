@@ -89,7 +89,7 @@ sealed trait MoveResult[+A] {
   }
 }
 case class OkMove[A](nextState: A) extends MoveResult[A]
-case class GameOver(result: GameEndResult) extends MoveResult[Nothing]
+case class GameOver(result: GameEndResult, finalState: Game) extends MoveResult[Nothing]
 case class InvalidMove(reason: String)
   extends Exception(reason)
     with MoveResult[Nothing]

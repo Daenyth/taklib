@@ -12,10 +12,10 @@ trait MoveResultValues {
   class MoveResultValue[A](m: MoveResult[A], pos: source.Position) {
     def value: A = m match {
       case OkMove(ok) => ok
-      case GameOver(o) =>
-        throw new TestFailedException((_: StackDepthException) => Some(s"$o is GameOver, expected OkMove."), None, pos)
-      case InvalidMove(i) =>
-        throw new TestFailedException((_: StackDepthException) => Some(s"$i is InvalidMove, expected OkMove."), None, pos)
+      case o: GameOver =>
+        throw new TestFailedException((_: StackDepthException) => Some(s"Got $o, expected OkMove."), None, pos)
+      case i: InvalidMove =>
+        throw new TestFailedException((_: StackDepthException) => Some(s"Got $i, expected OkMove."), None, pos)
     }
   }
 }
