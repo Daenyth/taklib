@@ -50,6 +50,8 @@ object PtnParser extends RegexParsers {
   }
   val turnAction: Parser[Player => TurnAction] = playStone | moveStones
 
+  val comment: Parser[String] = "'{1,2}".r | "[!?]{1,2}".r
+
   def parseEither[T](parser: PtnParser.Parser[T], ptn: String): String \/ T =
     parse(parser, ptn) match {
       case Success(result, _) => \/.right(result)
