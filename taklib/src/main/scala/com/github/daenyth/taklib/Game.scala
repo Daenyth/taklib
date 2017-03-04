@@ -55,12 +55,19 @@ object RuleSet {
 
 trait RuleSet {
 
-  def check(game: Game, action: TurnAction): Option[InvalidMove] =
-    rules.view.map(_(game, action)).collectFirst {
-      case Some(reason) => reason
+  def check(game: Game, action: TurnAction): Option[InvalidMove] = {
+    @tailrec
+    def go(rules: List[GameRule]): Option[InvalidMove] = rules match {
+      case Nil => None
+      case rule :: rs => rule(game, action) match {
+        case s: Some[_] => s
+        case None => go(rs)
+      }
     }
+    go(rules)
+  }
 
-  val rules: Vector[GameRule]
+  val rules: List[GameRule]
 
   /** board size -> (stones, capstones) */
   val stoneCounts: Map[Int, (Int, Int)]
@@ -87,7 +94,7 @@ object DefaultRules extends RuleSet {
   val actingPlayerControlsStack: GameRule = { (game, action) =>
     val board = game.currentBoard
     action match {
-      case play: PlayStone => None
+      case _: PlayStone => None
       case m: Move =>
         board
           .stackAt(m.from) match {
@@ -115,7 +122,7 @@ object DefaultRules extends RuleSet {
       .orElse(InvalidMove(s"${action.player} is not the correct color for this turn"))
   }
 
-  override val rules: Vector[GameRule] = Vector(
+  override val rules: List[GameRule] = List(
     actionIndexIsValid,
     actingPlayerControlsStack,
     playerOwnsStone
@@ -182,9 +189,13 @@ class Game private (val size: Int,
 
   def takeTurn(action: TurnAction): MoveResult[Game] =
     rules.check(this, action).getOrElse {
-      currentBoard.applyAction(action).map { nextState =>
+      currentBoard.applyAction(action).flatMap { nextState =>
         val newHistory = (action, nextState) <:: history
-        new Game(size, turnNumber + 1, rules, newHistory)
+        val game = new Game(size, turnNumber + 1, rules, newHistory)
+        game.winner match {
+          case Some(gameEnd) => GameOver(gameEnd, game)
+          case None => OkMove(game)
+        }
       }
     }
 

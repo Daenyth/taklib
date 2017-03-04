@@ -221,7 +221,7 @@ class GameTest
       case (action, n) if n % 2 == 0 => action(White)
       case (action, _) => action(Black)
     }
-    val game = actions.foldLeftM(Game.ofSize(6).value) { (game, action) => game.takeTurn(action) }.value
-    game.winner shouldEqual Some(FlatWin(White))
+    val game = actions.foldLeftM(Game.ofSize(6).value) { (game, action) => game.takeTurn(action) }
+    game should matchPattern { case GameOver(FlatWin(White), _) => () }
   }
 }
