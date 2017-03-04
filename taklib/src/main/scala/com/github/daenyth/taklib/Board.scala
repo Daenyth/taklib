@@ -15,7 +15,7 @@ object Board {
   type BoardLayout = Vector[Vector[Stack]]
 
   /** Build a board from Tak Positional System; -\/ if tps is invalid */
-  def fromTps(tps: String): String \/ Board = TpsParser.parse(TpsParser.board, tps) match {
+  def fromTps(tps: String): String \/ Board = TpsParser.parse(TpsParser.tps, tps) match {
     case TpsParser.Success((board, _, _), _) => board.right
     case err: TpsParser.NoSuccess => err.msg.left
   }

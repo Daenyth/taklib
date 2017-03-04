@@ -177,7 +177,7 @@ object Game {
     PtnParser.parseEither(PtnParser.ptn(DefaultRules), ptn).map(_._2)
 
   def fromTps(tps: String): String \/ Game =
-    TpsParser.parse(TpsParser.board, tps) match {
+    TpsParser.parse(TpsParser.tps, tps) match {
       case TpsParser.Success((board, turn, nextPlayer), _) =>
         // We use one turn for each player's action, Tps uses turn as a move for both players with a move counter between them
         val turnNumber = (2 * turn) + nextPlayer.fold(1, 0)

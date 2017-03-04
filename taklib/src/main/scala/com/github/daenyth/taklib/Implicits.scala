@@ -1,6 +1,6 @@
 package com.github.daenyth.taklib
 
-import scala.util.parsing.combinator.Parsers
+import scala.util.parsing.combinator.RegexParsers
 import scalaz.{-\/, \/, \/-}
 import scalaz.syntax.either._
 
@@ -13,10 +13,10 @@ object Implicits {
       if (!b) Some(ifTrue) else None
   }
 
-  // Credit to http://stackoverflow.com/a/27513509/350351
-  trait RichParsing { this: Parsers =>
+  trait RichParsing { this: RegexParsers =>
+    // Credit to http://stackoverflow.com/a/27513509/350351
     implicit class RichParser[+T](p: Parser[T]) {
-      def ^^?[U](f: T => \/[String, U]): Parser[U] = new Parser[U] {
+      def ^^?[U](f: T => (String \/ U)): Parser[U] = new Parser[U] {
         def apply(in: Input) = p(in) match {
           case Success(x, in1) => f(x) match {
             case -\/(error) => Failure(error, in1)
@@ -26,6 +26,20 @@ object Implicits {
           case error: Error => error
         }
       }
+
+      def >>?[U](f: T => (String \/ Parser[U])): Parser[U] = p.flatMap { x =>
+        f(x) match {
+          case -\/(err) => new Parser[U] { def apply(in: Input): ParseResult[U] = Failure(err, in) }
+          case \/-(parser) => parser
+        }
+      }
     }
+
+    def parseEither[T](parser: this.Parser[T], input: String): String \/ T =
+      this.parse(parser, input) match {
+        case Success(result, _) => \/.right(result)
+        case err: NoSuccess =>
+          \/.left(err.msg)
+      }
   }
 }

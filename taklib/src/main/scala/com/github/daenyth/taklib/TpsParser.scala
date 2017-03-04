@@ -10,7 +10,7 @@ import scalaz.{-\/, \/-}
 object TpsParser extends RegexParsers with RichParsing {
   override val skipWhitespace = false
 
-  val board: Parser[(Board, Int, Player)] = {
+  val tps: Parser[(Board, Int, Player)] = {
     val turn = """\d+""".r
     val nextPlayer = """\b1|2\b""".r
     val piece: Parser[Vector[Stack]] = "(1|2)[SC]?".r ^^ { ss =>
