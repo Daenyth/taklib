@@ -87,6 +87,12 @@ sealed trait MoveResult[+A] {
     case o: GameOver => o
     case i: InvalidMove => i
   }
+
+  def noteInvalid(t: TurnAction): MoveResult[A] = noteInvalid(r => s"(${t.ptn}) $r")
+  def noteInvalid(addNote: String => String): MoveResult[A] = this match {
+    case InvalidMove(reason) => InvalidMove(addNote(reason))
+    case other => other
+  }
 }
 case class OkMove[A](nextState: A) extends MoveResult[A]
 case class GameOver(result: GameEndResult, finalState: Game) extends MoveResult[Nothing]

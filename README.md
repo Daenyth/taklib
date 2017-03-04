@@ -29,7 +29,10 @@ val next: MoveResult[Game] = game.takeTurn(PlayFlat(Black, BoardIndex(1, 1)))
 Taklib is currently alpha status - there may be bugs and the api is not stable yet
 
 ## What you can do now
-- Create games with empty boards or boards from TPS
+- Create new games with an empty board
+- Create a new game from a TPS string
+- Create a (potentially completed) game from a PTN file
+  - Currently only if the PTN does not have TPS inside it (coming soon)
 - Play moves that are checked for validity
 - Detect all game-ending conditions
 - Run a rudimentary interactive mode on the command line

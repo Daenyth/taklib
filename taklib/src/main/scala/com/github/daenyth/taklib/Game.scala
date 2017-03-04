@@ -30,6 +30,8 @@ object GameEndResult {
         case (_, Draw) => Draw
         case (r: RoadWin, _: FlatWin) => r
         case (_: FlatWin, r: RoadWin) => r
+        case (w: WinByResignation, _) => w
+        case (_, w: WinByResignation) => w
       }
 
       override def equal(a1: GameEndResult, a2: GameEndResult): Boolean = (a1, a2) match {
@@ -37,6 +39,7 @@ object GameEndResult {
         case (Draw, Draw) => true
         case (RoadWin(p1), RoadWin(p2)) => p1 == p2
         case (FlatWin(p1), FlatWin(p2)) => p1 == p2
+        case (WinByResignation(p1), WinByResignation(p2)) => p1 == p2
         case _ => false
       }
     }
@@ -46,6 +49,7 @@ sealed trait RoadResult extends GameEndResult
 sealed trait FlatResult extends GameEndResult
 case class RoadWin(player: Player) extends RoadResult
 case class FlatWin(player: Player) extends FlatResult
+case class WinByResignation(player: Player) extends GameEndResult
 case object DoubleRoad extends RoadResult
 case object Draw extends FlatResult
 
@@ -159,7 +163,8 @@ object Game {
       NonEmptyList((StartGameWithBoard(board), board))
     )
 
-  def fromPtn(ptn: String): String \/ Game = ???
+  def fromPtn(ptn: String): String \/ MoveResult[Game] =
+    PtnParser.parseEither(PtnParser.ptn(DefaultRules), ptn)
 
   def fromTps(tps: String): String \/ Game =
     TpsParser.parse(TpsParser.board, tps) match {
@@ -197,7 +202,7 @@ class Game private (val size: Int,
           case None => OkMove(game)
         }
       }
-    }
+    }.noteInvalid(action)
 
   def undo: MoveResult[Game] =
     history.tail.toNel.map { prev =>
