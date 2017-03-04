@@ -18,7 +18,7 @@ class PtnParserTest extends FlatSpec with Matchers with DisjunctionValues {
 
   "PTN files" should "All parse with no errors" in {
     val contents = Source.fromResource("ptn/game1.ptn").getLines.mkString("\n")
-    val result = PtnParser.parseEither(PtnParser.ptn(DefaultRules), contents).value
+    val result: MoveResult[Game] = PtnParser.parseEither(PtnParser.ptn(DefaultRules), contents).value._2
     result should not be an[InvalidMove]
   }
 }

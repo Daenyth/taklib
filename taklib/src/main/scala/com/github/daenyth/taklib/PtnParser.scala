@@ -8,6 +8,10 @@ import scalaz.std.vector._
 import scalaz.syntax.foldable._
 
 object PtnParser extends RegexParsers {
+
+  // TODO expose a well-typed PtnHeader class with known keys as fields
+  type PtnHeaders = Map[String, String]
+
   val boardIndex: Parser[BoardIndex] = "([abcdefgh])([12345678])".r ^^ { str =>
     val rankChr = str.charAt(0)
     val rank = BoardIndex.rankNames.indexOf(rankChr) + 1
@@ -59,8 +63,7 @@ object PtnParser extends RegexParsers {
       (headerKey, headerValue.substring(1, headerValue.length - 1))
   }
 
-  // TODO expose a well-typed PtnHeader class with known keys as fields
-  val headers: Parser[Map[String, String]] = rep(headerLine).map(_.toMap)
+  val headers: Parser[PtnHeaders] = rep(headerLine).map(_.toMap)
 
   val fullTurnLine: Parser[(Int, Player => TurnAction, Player => TurnAction)] = """\d+\.""".r ~ turnAction ~ turnAction ^^ {
     case turnNumber ~ whiteAction ~ blackAction =>
@@ -73,31 +76,29 @@ object PtnParser extends RegexParsers {
   }
 
   // TODO parse TPS as starting board
-  val gameHistory: Parser[Vector[TurnAction]] = rep(fullTurnLine) ~ lastTurnLine.? ^^ {
+  val gameHistory: Parser[Vector[Player => TurnAction]] = rep(fullTurnLine) ~ lastTurnLine.? ^^ {
     case fullturns ~ lastTurn =>
       var nextTurnNumber = 1
       val iter = fullturns.iterator
-      val history = new VectorBuilder[TurnAction]
+      val history = new VectorBuilder[Player => TurnAction]
       while (iter.hasNext) {
         val (turnNumber, whiteAction, blackAction) = iter.next()
-        val stoneColor = if (turnNumber == 1) (Black, White) else (White, Black)
         assert(
           turnNumber == nextTurnNumber,
           s"Turn numbers out of order; expected $nextTurnNumber, got $turnNumber"
         )
         nextTurnNumber += 1
-        history += whiteAction(stoneColor._1)
-        history += blackAction(stoneColor._2)
+        history += whiteAction
+        history += blackAction
       }
       lastTurn.foreach {
         case (turnNumber, whiteAction, blackAction) =>
-          val stoneColor = if (turnNumber == 1) (Black, White) else (White, Black)
           assert(
             turnNumber == nextTurnNumber,
             s"Turn numbers out of order; expected $nextTurnNumber, got $turnNumber"
           )
-          history += whiteAction(stoneColor._1)
-          blackAction.foreach(a => history += a(stoneColor._2))
+          history += whiteAction
+          blackAction.foreach(history += _)
       }
       history.result()
   }
@@ -124,14 +125,18 @@ object PtnParser extends RegexParsers {
   }
   val gameEnd: Parser[GameEndResult] = roadWin | flatWin | resignation | draw
 
-  def ptn(ruleSet: RuleSet): Parser[MoveResult[Game]] = headers ~ gameHistory ^^ {
+  def ptn(ruleSet: RuleSet): Parser[(PtnHeaders, MoveResult[Game])] = headers ~ gameHistory ^^ {
     case gameHeaders ~ history =>
       val size = Try(gameHeaders("Size").toInt)
         .getOrElse(throw new Exception("Unable to parse game size from header"))
       val initialGame = Game.ofSize(size, ruleSet).fold(err => throw new Exception(err), identity)
-      history.zipWithIndex.foldLeftM[MoveResult, Game](initialGame) { case (game, (action, actionIdx)) =>
-          game.takeTurn(action).noteInvalid(r => s"(Move #$actionIdx) $r")
-      }
+      val finalGame = history.zipWithIndex
+        .map { case (a, i) => (a(ruleSet.expectedStoneColor(i + 1)), i) }
+        .foldLeftM[MoveResult, Game](initialGame) {
+          case (game, (action, actionIdx)) =>
+            game.takeTurn(action).noteInvalid(r => s"(Move #${actionIdx + 1}) $r")
+        }
+      (gameHeaders, finalGame)
   }
   def parseEither[T](parser: PtnParser.Parser[T], ptn: String): String \/ T =
     parse(parser, ptn) match {

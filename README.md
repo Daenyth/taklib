@@ -53,6 +53,7 @@ res0: scalaz.\/[String,com.github.daenyth.taklib.Game] = -\/(Bad game size: 7)
 // A new variant with a size-7 board that has 40 flatstones and 7 capstones per player!
 scala> Game.ofSize(7, new RuleSet {
      | val rules = DefaultRules.rules
+     | val expectedStoneColor = DefaultRules.expectedStoneColor
      | val stoneCounts = DefaultRules.stoneCounts + ((7, (40, 7)))
      | })
 res1: scalaz.\/[String,com.github.daenyth.taklib.Game] = \/-(com.github.daenyth.taklib.Game@517564bf)

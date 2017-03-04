@@ -75,6 +75,9 @@ trait RuleSet {
 
   /** board size -> (stones, capstones) */
   val stoneCounts: Map[Int, (Int, Int)]
+
+  /** Given the absolute turn number, which stone is expected to be played on that turn */
+  val expectedStoneColor: Int => Player
 }
 
 object DefaultRules extends RuleSet {
@@ -139,6 +142,13 @@ object DefaultRules extends RuleSet {
     6 -> ((30, 1)),
     8 -> ((50, 2))
   )
+
+  override val expectedStoneColor: (Int) => Player = {
+    case 1 => Black
+    case 2 => White
+    case n if n % 2 == 1 => White
+    case _ => Black
+  }
 }
 
 object Game {
@@ -164,7 +174,7 @@ object Game {
     )
 
   def fromPtn(ptn: String): String \/ MoveResult[Game] =
-    PtnParser.parseEither(PtnParser.ptn(DefaultRules), ptn)
+    PtnParser.parseEither(PtnParser.ptn(DefaultRules), ptn).map(_._2)
 
   def fromTps(tps: String): String \/ Game =
     TpsParser.parse(TpsParser.board, tps) match {
@@ -185,12 +195,7 @@ class Game private (val size: Int,
 
   private val reserveCount = rules.stoneCounts(size)
   def currentBoard: Board = history.head._2
-  def nextPlayer: Player = turnNumber match {
-    case 1 => Black
-    case 2 => White
-    case n if n % 2 == 1 => White
-    case _ => Black
-  }
+  def nextPlayer: Player = rules.expectedStoneColor(turnNumber)
 
   def takeTurn(action: TurnAction): MoveResult[Game] =
     rules.check(this, action).getOrElse {
