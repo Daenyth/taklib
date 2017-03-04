@@ -1,0 +1,11 @@
+[Site "PlayTak.com"]
+[Event "Online Play"]
+[Date "2017.03.02"]
+[Time "21:43:50"]
+[Player1 "White"]
+[Player2 "Black"]
+[Clock "15:0 +20"]
+[Size "6"]
+[TPS "2,x,2,2222221C,2,2S/12,2111112S,1S,1222C,2,2/x,221,221S,22,1,2/1,1,1,1S,x,1/x,1,21S,x,1,1/x,1,2S,221,1,1 2 44"]
+
+44. 1d4>1

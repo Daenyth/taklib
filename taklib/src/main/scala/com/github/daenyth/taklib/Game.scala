@@ -1,6 +1,6 @@
 package com.github.daenyth.taklib
 
-import com.github.daenyth.taklib.BooleanOps._
+import com.github.daenyth.taklib.Implicits.RichBoolean
 import com.github.daenyth.taklib.RuleSet.GameRule
 
 import scala.annotation.tailrec

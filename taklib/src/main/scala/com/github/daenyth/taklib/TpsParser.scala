@@ -1,10 +1,13 @@
 package com.github.daenyth.taklib
 
+import com.github.daenyth.taklib.Implicits.RichParsing
+
 import scala.annotation.tailrec
 import scala.util.Try
 import scala.util.parsing.combinator.RegexParsers
+import scalaz.{-\/, \/-}
 
-object TpsParser extends RegexParsers {
+object TpsParser extends RegexParsers with RichParsing {
   override val skipWhitespace = false
 
   val board: Parser[(Board, Int, Player)] = {
@@ -40,19 +43,22 @@ object TpsParser extends RegexParsers {
       xs.toVector.flatten: Vector[Stack]
     }
     val board = rep1sep(row, "/")
-    board ~ " " ~ nextPlayer ~ " " ~ turn ^^ {
+    board ~ " " ~ nextPlayer ~ " " ~ turn ^^? {
       case bd ~ _ ~ np ~ _ ~ t =>
         val pieces: Vector[Vector[Stack]] = bd.toVector
         val ranksize = pieces.size
 
         // How do I report this as a parse fail instead?
-        assert((for (file <- pieces) yield file.size).forall(_ == ranksize))
+        if (! (for (file <- pieces) yield file.size).forall(_ == ranksize)) {
+          -\/("Board size is not square")
+        } else {
 
-        val player = np match {
-          case "1" => White
-          case "2" => Black
+          val player = np match {
+            case "1" => White
+            case "2" => Black
+          }
+          \/-((Board(ranksize, pieces), t.toInt, player))
         }
-        (Board(ranksize, pieces), t.toInt, player)
     }
   }
 }

@@ -1,13 +1,15 @@
 package com.github.daenyth.taklib
 
+import com.github.daenyth.taklib.Implicits.RichParsing
+
 import scala.collection.immutable.VectorBuilder
 import scala.util.Try
 import scala.util.parsing.combinator.RegexParsers
-import scalaz.\/
+import scalaz.{-\/, \/, \/-}
 import scalaz.std.vector._
 import scalaz.syntax.foldable._
 
-object PtnParser extends RegexParsers {
+object PtnParser extends RegexParsers with RichParsing {
 
   // TODO expose a well-typed PtnHeader class with known keys as fields
   type PtnHeaders = Map[String, String]
@@ -76,31 +78,35 @@ object PtnParser extends RegexParsers {
   }
 
   // TODO parse TPS as starting board
-  val gameHistory: Parser[Vector[Player => TurnAction]] = rep(fullTurnLine) ~ lastTurnLine.? ^^ {
+  val gameHistory: Parser[Vector[Player => TurnAction]] = rep(fullTurnLine) ~ lastTurnLine.? ^^? {
     case fullturns ~ lastTurn =>
       var nextTurnNumber = 1
       val iter = fullturns.iterator
       val history = new VectorBuilder[Player => TurnAction]
-      while (iter.hasNext) {
-        val (turnNumber, whiteAction, blackAction) = iter.next()
-        assert(
-          turnNumber == nextTurnNumber,
-          s"Turn numbers out of order; expected $nextTurnNumber, got $turnNumber"
-        )
-        nextTurnNumber += 1
-        history += whiteAction
-        history += blackAction
-      }
-      lastTurn.foreach {
-        case (turnNumber, whiteAction, blackAction) =>
-          assert(
+      try {
+        while (iter.hasNext) {
+          val (turnNumber, whiteAction, blackAction) = iter.next()
+          require(
             turnNumber == nextTurnNumber,
             s"Turn numbers out of order; expected $nextTurnNumber, got $turnNumber"
           )
+          nextTurnNumber += 1
           history += whiteAction
-          blackAction.foreach(history += _)
+          history += blackAction
+        }
+        lastTurn.foreach {
+          case (turnNumber, whiteAction, blackAction) =>
+            require(
+              turnNumber == nextTurnNumber,
+              s"Turn numbers out of order; expected $nextTurnNumber, got $turnNumber"
+            )
+            history += whiteAction
+            blackAction.foreach(history += _)
+        }
+        \/-(history.result())
+      } catch {
+        case e: Exception => -\/(e.getMessage)
       }
-      history.result()
   }
 
   val infoMark: Parser[String] = "'{1,2}".r | "[!?]{1,2}".r

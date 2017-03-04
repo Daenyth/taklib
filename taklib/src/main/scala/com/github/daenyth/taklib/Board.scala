@@ -1,7 +1,7 @@
 package com.github.daenyth.taklib
 
 import com.github.daenyth.taklib.Board._
-import com.github.daenyth.taklib.BooleanOps._
+import com.github.daenyth.taklib.Implicits.RichBoolean
 
 import scala.annotation.tailrec
 import scala.collection.immutable.IndexedSeq
