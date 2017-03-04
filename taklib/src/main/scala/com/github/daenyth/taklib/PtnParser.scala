@@ -48,7 +48,7 @@ object PtnParser extends RegexParsers {
           Move(player, idx, direction, count, drops)
     }
   }
-  val turnAction: Parser[Player => TurnAction] = playStone | moveStones
+  val turnAction: Parser[Player => TurnAction] = moveStones | playStone
 
   val comment: Parser[String] = "'{1,2}".r | "[!?]{1,2}".r
 
