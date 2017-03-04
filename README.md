@@ -33,10 +33,26 @@ Taklib is currently alpha status - there may be bugs and the api is not stable y
 - Play moves that are checked for validity
 - Detect all game-ending conditions
 - Run a rudimentary interactive mode on the command line
+- Add your own custom game rules
 
 ## Interactive game on the command line
 ```
 sbt takcli/run
+```
+
+## Add custom rules
+Create a RuleSet to make new games with
+
+```
+scala> Game.ofSize(7, DefaultRules)
+res0: scalaz.\/[String,com.github.daenyth.taklib.Game] = -\/(Bad game size: 7)
+
+// A new variant with a size-7 board that has 40 flatstones and 7 capstones per player!
+scala> Game.ofSize(7, new RuleSet {
+     | val rules = DefaultRules.rules
+     | val stoneCounts = DefaultRules.stoneCounts + ((7, (40, 7)))
+     | })
+res1: scalaz.\/[String,com.github.daenyth.taklib.Game] = \/-(com.github.daenyth.taklib.Game@517564bf)
 ```
 
 ## Goals

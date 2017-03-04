@@ -55,7 +55,7 @@ object RuleSet {
 
 trait RuleSet {
 
-  def check(game: Game, action: TurnAction): Option[InvalidMove] = {
+  final def check(game: Game, action: TurnAction): Option[InvalidMove] = {
     @tailrec
     def go(rules: List[GameRule]): Option[InvalidMove] = rules match {
       case Nil => None
