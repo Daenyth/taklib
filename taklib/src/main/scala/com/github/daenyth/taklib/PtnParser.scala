@@ -76,7 +76,6 @@ object PtnParser extends RegexParsers with RichParsing {
       (turnNumber.dropRight(1).toInt, whiteAction, blackAction)
   }
 
-  // TODO parse TPS as starting board
   def gameHistory(startingTurn: Int, skipFirst: Boolean): Parser[Vector[Player => TurnAction]] =
     rep(fullTurnLine) ~ lastTurnLine.? ^^? {
       case fullturns ~ lastTurn =>
@@ -104,7 +103,11 @@ object PtnParser extends RegexParsers with RichParsing {
                 turnNumber == nextTurnNumber,
                 s"Turn numbers out of order; expected $nextTurnNumber, got $turnNumber"
               )
-              history += whiteAction
+              if (skipFirst && startingTurn == turnNumber) {
+                // do nothing
+              } else {
+                history += whiteAction
+              }
               blackAction.foreach(history += _)
           }
           history.result()
@@ -141,7 +144,8 @@ object PtnParser extends RegexParsers with RichParsing {
         TpsParser.parseEither(TpsParser.tps, tps).flatMap {
           case (board, turnNumber, nextPlayer) =>
             def getGame(size: Int, ruleSet: RuleSet): String \/ Game = {
-              val game = Game.fromBoard(board, turnNumber)
+              val gameTurnNumber = (2 * turnNumber) + nextPlayer.fold(1, 0)
+              val game = Game.fromBoard(board, gameTurnNumber)
               if (game.size != size)
                 -\/(s"Game headers declared size $size but TPS contained size ${game.size}")
               else \/-(game)
@@ -160,11 +164,13 @@ object PtnParser extends RegexParsers with RichParsing {
     }
   }
 
-  private def gameHistoryFromTurn(ruleSet: RuleSet,
-                                  gameHeaders: PtnHeaders,
-                                  startingTurn: Int,
-                                  skipFirst: Boolean,
-                                  getInitialGame: (Int, RuleSet) => String \/ Game) =
+  private def gameHistoryFromTurn(
+      ruleSet: RuleSet,
+      gameHeaders: PtnHeaders,
+      startingTurn: Int,
+      skipFirst: Boolean,
+      getInitialGame: (Int, RuleSet) => String \/ Game
+  ): Parser[(PtnHeaders, MoveResult[Game])] =
     gameHistory(startingTurn, skipFirst) ^^? { history =>
       for {
         size <- \/.fromTryCatchNonFatal(gameHeaders("Size").toInt)

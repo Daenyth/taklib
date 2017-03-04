@@ -30,10 +30,10 @@ class PtnParserTest extends FlatSpec with Matchers with DisjunctionValues with M
     val ptn = readPtn("game2")
     val (headers, result: MoveResult[Game]) = parsePtn(ptn).value
     val tps = headers("TPS")
-    val tg: Game = Game.fromTps(tps).value
-    val pg: Game = result.value
-    tg.nextPlayer shouldEqual pg.nextPlayer
-    tg.turnNumber shouldEqual pg.turnNumber
-    tg.currentBoard shouldEqual pg.currentBoard
+    val gameFromTps: Game = Game.fromTps(tps).value
+    val gameFromPtn: Game = result.value
+    gameFromTps.nextPlayer shouldEqual gameFromPtn.nextPlayer
+    gameFromTps.turnNumber shouldEqual gameFromPtn.turnNumber
+    gameFromTps.currentBoard shouldEqual gameFromPtn.currentBoard
   }
 }
