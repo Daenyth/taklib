@@ -3,9 +3,8 @@ package com.github.daenyth.taklib
 import com.github.daenyth.taklib.Implicits.RichParsing
 
 import scala.collection.immutable.VectorBuilder
-import scala.util.Try
 import scala.util.parsing.combinator.RegexParsers
-import scalaz.{-\/, \/, \/-}
+import scalaz.\/
 import scalaz.std.vector._
 import scalaz.syntax.foldable._
 
@@ -83,7 +82,7 @@ object PtnParser extends RegexParsers with RichParsing {
       var nextTurnNumber = 1
       val iter = fullturns.iterator
       val history = new VectorBuilder[Player => TurnAction]
-      try {
+      \/.fromTryCatchNonFatal {
         while (iter.hasNext) {
           val (turnNumber, whiteAction, blackAction) = iter.next()
           require(
@@ -103,10 +102,8 @@ object PtnParser extends RegexParsers with RichParsing {
             history += whiteAction
             blackAction.foreach(history += _)
         }
-        \/-(history.result())
-      } catch {
-        case e: Exception => -\/(e.getMessage)
-      }
+        history.result()
+      }.leftMap(_.getMessage)
   }
 
   val infoMark: Parser[String] = "'{1,2}".r | "[!?]{1,2}".r
@@ -131,18 +128,21 @@ object PtnParser extends RegexParsers with RichParsing {
   }
   val gameEnd: Parser[GameEndResult] = roadWin | flatWin | resignation | draw
 
-  def ptn(ruleSet: RuleSet): Parser[(PtnHeaders, MoveResult[Game])] = headers ~ gameHistory ^^ {
+  def ptn(ruleSet: RuleSet): Parser[(PtnHeaders, MoveResult[Game])] = headers ~ gameHistory ^^? {
     case gameHeaders ~ history =>
-      val size = Try(gameHeaders("Size").toInt)
-        .getOrElse(throw new Exception("Unable to parse game size from header"))
-      val initialGame = Game.ofSize(size, ruleSet).fold(err => throw new Exception(err), identity)
-      val finalGame = history.zipWithIndex
-        .map { case (a, i) => (a(ruleSet.expectedStoneColor(i + 1)), i) }
-        .foldLeftM[MoveResult, Game](initialGame) {
-          case (game, (action, actionIdx)) =>
-            game.takeTurn(action).noteInvalid(r => s"(Move #${actionIdx + 1}) $r")
-        }
-      (gameHeaders, finalGame)
+      for {
+        size <- \/.fromTryCatchNonFatal(gameHeaders("Size").toInt)
+          .leftMap(ex => s"Unable to parse game size from header ${ex.getMessage}")
+        initialGame <- Game.ofSize(size, ruleSet)
+      } yield {
+        val finalGame = history.zipWithIndex
+          .map { case (a, i) => (a(ruleSet.expectedStoneColor(i + 1)), i) }
+          .foldLeftM[MoveResult, Game](initialGame) {
+            case (game, (action, actionIdx)) =>
+              game.takeTurn(action).noteInvalid(r => s"(Move #${actionIdx + 1}) $r")
+          }
+        (gameHeaders, finalGame)
+      }
   }
   def parseEither[T](parser: PtnParser.Parser[T], ptn: String): String \/ T =
     parse(parser, ptn) match {
