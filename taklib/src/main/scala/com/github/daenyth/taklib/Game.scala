@@ -178,9 +178,9 @@ object Game {
 
   def fromTps(tps: String): String \/ Game =
     TpsParser.parse(TpsParser.board, tps) match {
-      case TpsParser.Success((board, turn, move), _) =>
+      case TpsParser.Success((board, turn, nextPlayer), _) =>
         // We use one turn for each player's action, Tps uses turn as a move for both players with a move counter between them
-        val turnNumber = (2 * turn) + move - 1
+        val turnNumber = (2 * turn) + nextPlayer.fold(1, 0)
         Game.fromBoard(board, turnNumber).right
       case err: TpsParser.NoSuccess => err.msg.left
     }
@@ -220,9 +220,9 @@ class Game private (val size: Int,
   /** Serialize the current board state to TPS */
   def toTps: String = {
     val turn: Int = turnNumber / 2
-    val move = nextPlayer.fold(1, 2)
+    val nextPlayerNumber = nextPlayer.fold(1, 2)
     val board = currentBoard.toTps
-    s"[ $board $turn $move ]"
+    s"$board $nextPlayerNumber $turn"
   }
 
   def winner: Option[GameEndResult] =
