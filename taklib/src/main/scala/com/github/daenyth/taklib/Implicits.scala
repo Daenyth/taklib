@@ -18,10 +18,11 @@ object Implicits {
     implicit class RichParser[+T](p: Parser[T]) {
       def ^^?[U](f: T => (String \/ U)): Parser[U] = new Parser[U] {
         def apply(in: Input) = p(in) match {
-          case Success(x, in1) => f(x) match {
-            case -\/(error) => Failure(error, in1)
-            case \/-(x1) => Success(x1, in1)
-          }
+          case Success(x, in1) =>
+            f(x) match {
+              case -\/(error) => Failure(error, in1)
+              case \/-(x1) => Success(x1, in1)
+            }
           case failure: Failure => failure
           case error: Error => error
         }
@@ -29,10 +30,26 @@ object Implicits {
 
       def >>?[U](f: T => (String \/ Parser[U])): Parser[U] = p.flatMap { x =>
         f(x) match {
-          case -\/(err) => new Parser[U] { def apply(in: Input): ParseResult[U] = Failure(err, in) }
+          case -\/(err) =>
+            new Parser[U] { def apply(in: Input): ParseResult[U] = Failure(err, in) }
           case \/-(parser) => parser
         }
       }
+    }
+
+    // Credit to http://jim-mcbeath.blogspot.com/2011/07/debugging-scala-parser-combinators.html
+    class DebugParser[+T](name: String, parser: Parser[T]) extends Parser[T] {
+      def apply(in: Input): ParseResult[T] = {
+        val first = in.first
+        val pos = in.pos
+        val offset = in.offset
+        val t = parser.apply(in)
+        println(s"$name.apply for token $first at pos $pos offset $offset returns '$t' leaving\n${t.next.pos.longString}")
+        t
+      }
+    }
+    implicit class DebugParserOps(name: String) {
+      def ???>[T](p: Parser[T]) = new DebugParser(name, p)
     }
 
     def parseEither[T](parser: this.Parser[T], input: String): String \/ T =

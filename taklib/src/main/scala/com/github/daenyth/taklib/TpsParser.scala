@@ -12,8 +12,8 @@ object TpsParser extends RegexParsers with RichParsing {
 
   val tps: Parser[(Board, Int, Player)] = {
     val turn = """\d+""".r
-    val nextPlayer = """\b1|2\b""".r
-    val piece: Parser[Vector[Stack]] = "(1|2)[SC]?".r ^^ { ss =>
+    val nextPlayer = """1|2""".r
+    val stack: Parser[Vector[Stack]] = "(1|2)+[SC]?".r ^^ { ss =>
       @tailrec
       def go(owners: List[Player], stack: List[Stone], finalStone: Player => Stone): List[Stone] =
         owners match {
@@ -38,7 +38,7 @@ object TpsParser extends RegexParsers with RichParsing {
       val n = xn.substring(1)
       Vector.fill(Try(n.toInt).getOrElse(1))(Stack.empty)
     }
-    val space: Parser[Vector[Stack]] = empty | piece
+    val space: Parser[Vector[Stack]] = empty | stack
     val row: Parser[Vector[Stack]] = rep1sep(space, ",") ^^ { xs: List[Vector[Stack]] =>
       xs.toVector.flatten: Vector[Stack]
     }
@@ -48,7 +48,6 @@ object TpsParser extends RegexParsers with RichParsing {
         val pieces: Vector[Vector[Stack]] = bd.toVector
         val ranksize = pieces.size
 
-        // How do I report this as a parse fail instead?
         if (! (for (file <- pieces) yield file.size).forall(_ == ranksize)) {
           -\/("Board size is not square")
         } else {
