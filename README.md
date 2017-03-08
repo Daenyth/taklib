@@ -31,8 +31,7 @@ Taklib is currently alpha status - there may be bugs and the api is not stable y
 ## What you can do now
 - Create new games with an empty board
 - Create a new game from a TPS string
-- Create a (potentially completed) game from a PTN file
-  - Currently only if the PTN does not have TPS inside it (coming soon)
+- Create a (potentially completed) game from a PTN file, including games beginning with TPS tags
 - Play moves that are checked for validity
 - Detect all game-ending conditions
 - Run a rudimentary interactive mode on the command line
