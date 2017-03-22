@@ -49,3 +49,5 @@ libraryDependencies in takcli ++= Seq(
 )
 
 initialCommands in (taklib, console) += "import com.github.daenyth.taklib._"
+
+coverageEnabled := true
