@@ -1,6 +1,8 @@
 # taklib
 A scala library for the [Tak](http://cheapass.com/tak/) board game
 
+![travis-ci](https://travis-ci.org/Daenyth/taklib.svg?branch=master)
+
 ## Example usage
 
 ```scala
