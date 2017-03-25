@@ -1,0 +1,78 @@
+[Site "PlayTak.com"]
+[Event "Online Play"]
+[Date "2016.07.25"]
+[Time "21:49:41"]
+[Player1 "Abyss"]
+[Player2 "TakticianBot"]
+[Result "R-0"]
+[Size "5"]
+
+1. a5 a1 {Adjacent Corners opening}
+2. b1 c1 {I edgecrawl, confident that the bot will play c1.}
+3. b2 c5 {b2 seems the most principled follow up to b1--it extends the only
+ white path both northwards and eastwards. Having seen alphatak_bot's preferred 
+variation 3. ... b5, c5 was barely a surprise.}
+4. b5 b3 
+5. b4 d5
+6. c3 1b3+1 {Taktician's response caught me somewhat offguard: I had expected a
+capture from the fifth rank, but I quickly saw that Taktician's move was more 
+interesting. The point is that if I mindlessly try and extend my road 2b4+ would
+be unpleasant.}
+7. Cc4 Cb3 {Both our caps come in, eyeing both the other's potential roads and 
+the b4 square, but mine comes a tempo ahead.}
+8. 1c4<1 c2 {My capture also pins black's cap.}
+9. d3 e3 {We both extend our east-west threats on the side where our cap lies, i.e.
+I expand in the north while Taktician expands in the south.}
+10. d4 e2
+11. e4 Sc4 
+12. a3 d2 {In response to Taktician's c4 wall, I decide to pin the black cap two
+ways with a3.}
+13. a4! Sa2?! {Often, (especially when playing against bots) walls are only temporarily
+defensive, and later come back to haunt you when they start hoovering up influence
+in the late game. This wall, however, has no such ambitions. Once I abandon my
+north-south threat (which will occur shortly) this wall becomes a huge thorn in 
+black's own side. Black can scarely ever break the stronghold on a1-a2 / b1-b2; 
+therefore black can never again make a serious threat on the 1st and 2nd ranks.}
+14. e5 1d5-1
+15. d5 1e3<1
+16. 1d5-1 2d3+2 {I made a slight miscalculation that 17. e4< would be fine for me,
+but here I realized that if 17. ... c4> I cannot ever crush the wall because
+2b4>11 is 0-R after b3>. With that in mind, I must instead play the only 
+logical move Sd3.}
+17. Sd3 3d4>3? {I expected 17 ... c4>, because I didn't see any breakthroughs
+for me if black surrenders c4 in exchange for d4. In fact, having the wall on
+d4 seems perhaps more annoying because of the same tactic that I mentioned on
+move 16.}
+18. 1d3+1 4e4+4 {We dance around a bit, maneuvering control of the big 
+white stack.}
+19. e4 d5
+20. 2d4+2 5e5-5
+21. 1b4>1 1b3>1 {I decide to give up b4 and voluntarily move into a pin in hopes of
+undermining black's north-south threat and eventually playing 2c4>11.}
+22. b3 2b4-2 {I gladly take the space black leaves behind: b3. Note that after
+2b4-2 b3 is de facto undefended, because if black ever plays 2c3< I can respond
+with 2c4>11!! and black will gain a very soft stack while I gain a very hard
+stack.}
+23. b4 3b3+3
+24. 1d4>1 1a5>1 
+25. Sb3 Se3 {I get just a little bit nervous after 24. ... 1a5>1, so I
+decide to play a wall on b3 instead of a flat. This was perhaps an overreaction,
+but it also more firmly challenges b4, which it will eventually win, so I don't
+know which move was better.}
+26. 5e4<5 1e3<1?? {26. ... 1e3<1 is perhaps the losing move. If Taktician wanted
+a wall on d3, why not 26 ... Sd3 and keep the e file closed? As we shall see, 
+my e4 stack will be instrumental in dismantling black's threats once and for all.}
+27. d1 1d3+1
+28. 1d1<1 d1
+29. 1b2>1 2c3-2 
+30. e1 3c2-3 {With e1 I lay my penultimate flat and gain the power to end the game
+whenever I wish. Black must now play with only the flat count in mind.}
+31. 2e4-11! 4c1<4 {Black's response is forced.}
+32. 1b3+1 1d2>1
+33. 4b4-13 2e2+2
+34. 1b4+1 1c5<1 {My cap is finally unpinned.}
+35. 1c4>1 c3
+36. 5d4<14 1c3+1
+37. 1d4<1 d2 {As I will win next move on flats, Taktician doesn't bother blocking
+the road threat.}
+38. e4 {R-0} R-0

@@ -1,14 +1,23 @@
 package com.github.daenyth.taklib
 
+import com.github.daenyth.taklib.PtnParser.PtnHeaders
 import org.scalatest.{FlatSpec, Matchers}
 import org.typelevel.scalatest.DisjunctionValues
 
 import scala.io.Source
+import scalaz.\/
+
+object PtnParserTest {
+  def readPtn(ptnFileName: String): String =
+    Source.fromResource(s"ptn/$ptnFileName.ptn").getLines.mkString("\n")
+
+  def parsePtn(ptn: String): (String \/ (PtnHeaders, MoveResult[Game])) =
+    PtnParser.parseEither(PtnParser.ptn(DefaultRules), ptn)
+
+}
 
 class PtnParserTest extends FlatSpec with Matchers with DisjunctionValues with MoveResultValues {
-  def readPtn(name: String) = Source.fromResource(s"ptn/$name.ptn").getLines.mkString("\n")
-
-  def parsePtn(ptn: String) = PtnParser.parseEither(PtnParser.ptn(DefaultRules), ptn)
+  import PtnParserTest._
 
   "BoardIndex names" should "round trip ptn parsing" in {
     val size = 5
@@ -35,5 +44,21 @@ class PtnParserTest extends FlatSpec with Matchers with DisjunctionValues with M
     gameFromTps.nextPlayer shouldEqual gameFromPtn.nextPlayer
     gameFromTps.turnNumber shouldEqual gameFromPtn.turnNumber
     gameFromTps.currentBoard shouldEqual gameFromPtn.currentBoard
+  }
+
+  "An 8x8 game" should "work" in {
+    val ptn = readPtn("8x8")
+    val (_, result: MoveResult[Game]) = parsePtn(ptn).value
+    result should matchPattern {
+      case GameOver(RoadWin(White), _) => ()
+    }
+  }
+
+  "A game with annotation comments" should "parse correctly" in {
+    val ptn = readPtn("annot1")
+    val (_, result) = parsePtn(ptn).value
+    result should matchPattern {
+      case GameOver(RoadWin(White), _) => ()
+    }
   }
 }
