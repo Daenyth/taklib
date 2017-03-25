@@ -28,7 +28,7 @@ object Implicits {
         }
       }
 
-      def >>?[U](f: T => (String \/ Parser[U])): Parser[U] = p.flatMap { x =>
+      def >>=?[U](f: T => (String \/ Parser[U])): Parser[U] = p.flatMap { x =>
         f(x) match {
           case -\/(err) =>
             new Parser[U] { def apply(in: Input): ParseResult[U] = Failure(err, in) }
@@ -48,6 +48,8 @@ object Implicits {
         t
       }
     }
+
+    /** Use like `"foo" ???> (fooParser: Parser[Foo])` */
     implicit class DebugParserOps(name: String) {
       def ???>[T](p: Parser[T]) = new DebugParser(name, p)
     }

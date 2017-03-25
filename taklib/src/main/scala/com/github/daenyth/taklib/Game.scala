@@ -193,6 +193,14 @@ class Game private (val size: Int,
                     val rules: RuleSet,
                     val history: NonEmptyList[(GameAction, Board)]) {
 
+  override def toString = {
+    def pretty(ga: GameAction) = ga match {
+      case _: StartGameWithBoard => "{New Game}"
+      case t: TurnAction => s"${t.player} ${t.ptn}"
+    }
+    s"<Game ${size}x$size lastMove=[${pretty(history.head._1)}] turn=$turnNumber>"
+  }
+
   private val reserveCount = rules.stoneCounts(size)
   def currentBoard: Board = history.head._2
   def nextPlayer: Player = rules.expectedStoneColor(turnNumber)

@@ -57,7 +57,12 @@ object PtnParser extends RegexParsers with RichParsing {
           Move(player, idx, direction, count, drops)
     }
   }
-  val turnAction: Parser[Player => TurnAction] = moveStones | playStone
+
+  val infoMark: Parser[String] = "'{1,2}".r | "[!?]{1,2}".r
+
+  val turnAction: Parser[Player => TurnAction] = (moveStones | playStone) ~ infoMark.? ^^ {
+    case action ~ _ => action
+  }
 
   val headerLine: Parser[(String, String)] = "[" ~ """\S+""".r ~ "\".*\"".r ~ "]" ^^ {
     case _ ~ headerKey ~ headerValue ~ _ =>
@@ -66,15 +71,19 @@ object PtnParser extends RegexParsers with RichParsing {
 
   val headers: Parser[PtnHeaders] = rep(headerLine).map(_.toMap)
 
-  val fullTurnLine: Parser[(Int, Player => TurnAction, Player => TurnAction)] = """\d+\.""".r ~ turnAction ~ turnAction ^^ {
-    case turnNumber ~ whiteAction ~ blackAction =>
-      (turnNumber.dropRight(1).toInt, whiteAction, blackAction)
-  }
+  val comment: Parser[String] = """(?s)\{(.*?)\}""".r
 
-  val lastTurnLine: Parser[(Int, Player => TurnAction, Option[Player => TurnAction])] = """\d+\.""".r ~ turnAction ~ turnAction.? ^^ {
-    case turnNumber ~ whiteAction ~ blackAction =>
-      (turnNumber.dropRight(1).toInt, whiteAction, blackAction)
-  }
+  val fullTurnLine: Parser[(Int, Player => TurnAction, Player => TurnAction)] =
+    """\d+\.""".r ~ turnAction ~ turnAction ~ comment.? ^^ {
+      case turnNumber ~ whiteAction ~ blackAction ~ _comment =>
+        (turnNumber.dropRight(1).toInt, whiteAction, blackAction)
+    }
+
+  val lastTurnLine: Parser[(Int, Player => TurnAction, Option[Player => TurnAction])] =
+    """\d+\.""".r ~ turnAction ~ turnAction.? ~ comment.? ^^ {
+      case turnNumber ~ whiteAction ~ blackAction ~ _comment =>
+        (turnNumber.dropRight(1).toInt, whiteAction, blackAction)
+    }
 
   def gameHistory(startingTurn: Int, skipFirst: Boolean): Parser[Vector[Player => TurnAction]] =
     rep(fullTurnLine) ~ lastTurnLine.? ^^? {
@@ -114,8 +123,6 @@ object PtnParser extends RegexParsers with RichParsing {
         }.leftMap(_.getMessage)
     }
 
-  val infoMark: Parser[String] = "'{1,2}".r | "[!?]{1,2}".r
-
   val roadWin: Parser[RoadWin] = "R-0" ^^ { _ =>
     RoadWin(White)
   } | "0-R" ^^ { _ =>
@@ -136,7 +143,7 @@ object PtnParser extends RegexParsers with RichParsing {
   }
   val gameEnd: Parser[GameEndResult] = roadWin | flatWin | resignation | draw
 
-  def ptn(ruleSet: RuleSet): Parser[(PtnHeaders, MoveResult[Game])] = headers >>? { gameHeaders =>
+  def ptn(ruleSet: RuleSet): Parser[(PtnHeaders, MoveResult[Game])] = headers >>=? { gameHeaders =>
     gameHeaders.get("TPS") match {
       case None =>
         \/-(gameHistoryFromTurn(ruleSet, gameHeaders, 1, skipFirst = false, Game.ofSize))
