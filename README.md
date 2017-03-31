@@ -1,7 +1,7 @@
 # taklib
 A scala library for the [Tak](http://cheapass.com/tak/) board game
 
-[![Build Status](https://travis-ci.org/Daenyth/taklib.svg?branch=master)](https://travis-ci.org/Daenyth/taklib) [![Coverage Status](https://coveralls.io/repos/github/Daenyth/taklib/badge.svg?branch=master)](https://coveralls.io/github/Daenyth/taklib?branch=master)
+[![Build Status](https://travis-ci.org/Daenyth/taklib.svg?branch=master)](https://travis-ci.org/Daenyth/taklib) [![Coverage Status](https://coveralls.io/repos/github/Daenyth/taklib/badge.svg?branch=master)](https://coveralls.io/github/Daenyth/taklib?branch=master) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/ae261facd8f5421dbe9a895f4bcdcd58)](https://www.codacy.com/app/Daenyth/taklib)
 
 ## Example usage
 

@@ -170,6 +170,8 @@ object BoardIndex {
 }
 // Rank is normally 'a'..'e'/'f' depending on board size, Int here for convenience.
 case class BoardIndex(file: Int, rank: Int) {
+  import BoardIndex._
+
   def oppositeIndexes(boardSize: Int): IndexedSeq[BoardIndex] = {
     val left =
       if (file == 1) for (n <- 1 to boardSize) yield BoardIndex(boardSize, n) else Vector.empty
@@ -182,7 +184,6 @@ case class BoardIndex(file: Int, rank: Int) {
     left ++ bottom ++ right ++ top
   }
 
-  import BoardIndex._
   // This will throw for larger than 8x8 but that's not even defined in the rules anyway
   def name: String = s"${rankNames(file - 1)}$rank"
   def neighbor(d: MoveDirection): BoardIndex =
