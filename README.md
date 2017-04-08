@@ -7,6 +7,7 @@ A scala library for the [Tak](http://cheapass.com/tak/) board game
 
 ```scala
 import com.github.daenyth.taklib._
+import scalaz.\/
 ```
 
 ```scala
@@ -38,10 +39,48 @@ Taklib is currently alpha status - there may be bugs and the api is not stable y
 - Detect all game-ending conditions
 - Run a rudimentary interactive mode on the command line
 - Add your own custom game rules
+- Run an HTTP REST server that accepts tps and move input, returning tps.
 
 ## Interactive game on the command line
 ```
 sbt takcli/run
+```
+
+## TPS Server
+```
+sbt tpsserver/run
+```
+
+The server runs on localhost:8080 and listens for POST requests to `/tpsMove` with a json payload like
+```json
+{
+  "tps" : "x6/x6/x6/x6/x6/x6 1 1",
+  "move" : "a1"
+}
+```
+
+For example:
+```python
+# python
+import requests
+requests.post("http://localhost:8080/tpsMove", json={
+  "tps" : "x6/x6/x6/x6/x6/x6 1 1",
+  "move" : "a1"
+}).json()
+# {u'OkMove': {u'nextState': u'1,x,x,x,x,x/x,x,x,x,x,x/x,x,x,x,x,x/x,x,x,x,x,x/x,x,x,x,x,x/x,x,x,x,x,x 2 1'}}
+
+requests.post("http://localhost:8080/tpsMove", json={
+  "tps" : "invalid",
+  "move" : "a1"
+}).json()
+# {u'errors': [u"TPS: string matching regex `(1|2)+[SC]?' expected but `i' found"]}
+
+requests.post("http://localhost:8080/tpsMove", json={
+  "tps" : "1,1,1,1,1,x/x6/x6/x6/x6/x6 1 1",
+  "move" : "a6"
+}).json()
+# {u'GameOver': {u'finalState': u'1,1,1,1,1,1/x,x,x,x,x,x/x,x,x,x,x,x/x,x,x,x,x,x/x,x,x,x,x,x/x,x,x,x,x,x 2 1',
+#   u'result': {u'RoadWin': {u'player': {u'White': {}}}}}}
 ```
 
 ## Add custom rules

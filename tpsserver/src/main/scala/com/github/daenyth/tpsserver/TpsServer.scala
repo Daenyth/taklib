@@ -2,28 +2,38 @@ package com.github.daenyth.tpsserver
 
 import com.github.daenyth.taklib.{Game, MoveResult, PtnParser}
 import fs2.Task
-import io.circe.Encoder
 import io.circe.generic.auto._
 import io.circe.generic.semiauto.deriveEncoder
 import io.circe.syntax._
+import io.circe.{Encoder, Json}
 import org.http4s.circe._
 import org.http4s.dsl._
 import org.http4s.{HttpService, Response}
 
-import scalaz.\/
+import scalaz.ValidationNel
 import scalaz.syntax.applicative._
 
 case class TpsMove(tps: String, move: String)
 
 object TpsServer {
-  def takeTurn(move: TpsMove): String \/ MoveResult[Game] =
-    (Game.fromTps(move.tps) |@| PtnParser.parseEither(PtnParser.turnAction, move.move)) apply {
+  def takeTurn(move: TpsMove): ValidationNel[String, MoveResult[Game]] = {
+    val gameE = Game.fromTps(move.tps).leftMap(err => s"TPS: $err").validationNel
+    val moveE = PtnParser
+      .parseEither(PtnParser.turnAction, move.move)
+      .leftMap(err => s"Move: $err")
+      .validationNel
+    (gameE |@| moveE) apply {
       case (game, toAction) =>
         game.takeTurn(toAction(game.nextPlayer))
     }
+  }
 
   private def runTpsMove(move: TpsMove): Task[Response] =
-    takeTurn(move).map(_.asJson).fold(BadRequest(_), Ok(_))
+    takeTurn(move)
+      .fold(
+        err => BadRequest(Json.obj("errors" -> err.list.toVector.asJson)),
+        ok => Ok(ok.asJson)
+      )
 
   val tpsService = HttpService {
     case req @ POST -> Root / "tpsMove" =>
