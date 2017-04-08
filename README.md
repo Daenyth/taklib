@@ -83,6 +83,8 @@ requests.post("http://localhost:8080/tpsMove", json={
 #   u'result': {u'RoadWin': {u'player': {u'White': {}}}}}}
 ```
 
+The exact json structure is likely going to be changed. Right now it's automatically derived from the internal representation, rather than being designed to be easy to use directly.
+
 ## Add custom rules
 Create a RuleSet to make new games with
 
