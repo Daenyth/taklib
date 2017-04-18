@@ -119,4 +119,4 @@ res1: scalaz.\/[String,com.github.daenyth.taklib.Game] = \/-(com.github.daenyth.
 
 ## License
 
-Taklib is under the GPL3. For more information, see [COPYING](COPYING)
+Taklib is under the AGPL3. For more information, see [COPYING](COPYING)
