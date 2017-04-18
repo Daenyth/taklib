@@ -29,11 +29,15 @@ lazy val takcli = (project in file("takcli"))
 lazy val tpsserver = (project in file("tpsserver"))
   .dependsOn(taklib)
   .settings(commonSettings, name := "tpsserver")
+lazy val opentak = (project in file("opentak"))
+  .dependsOn(taklib)
+  .settings(commonSettings, name := "opentak")
 
 // Remove these options in 'sbt console' because they're not nice for interactive usage
 scalacOptions in (taklib, Compile, console) ~= (_.filterNot(Set("-Xfatal-warnings", "-Ywarn-unused-import").contains))
 scalacOptions in (takcli, Compile, console) ~= (_.filterNot(Set("-Xfatal-warnings", "-Ywarn-unused-import").contains))
 scalacOptions in (tpsserver, Compile, console) ~= (_.filterNot(Set("-Xfatal-warnings", "-Ywarn-unused-import").contains))
+scalacOptions in (opentak, Compile, console) ~= (_.filterNot(Set("-Xfatal-warnings", "-Ywarn-unused-import").contains))
 
 resolvers += Resolver.sonatypeRepo("releases")
 
