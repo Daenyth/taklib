@@ -1,5 +1,6 @@
 package com.github.daenyth.taklib
 
+import com.github.daenyth.taklib.GameEndResult._
 import com.github.daenyth.taklib.PtnParser.PtnHeaders
 import org.scalatest.{FlatSpec, Matchers}
 import org.typelevel.scalatest.DisjunctionValues

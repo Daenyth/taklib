@@ -1,13 +1,14 @@
 package com.github.daenyth.taklib
 
+import com.github.daenyth.taklib.GameEndResult._
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalatest.{FlatSpec, Matchers, OptionValues}
 import org.typelevel.scalatest.DisjunctionValues
 
 import scalaz.\/
 import scalaz.scalacheck.ScalazProperties
-import scalaz.syntax.traverse._
 import scalaz.std.vector._
+import scalaz.syntax.traverse._
 
 object GameTest {
   implicit val arbRoad: Arbitrary[RoadWin] = Arbitrary { Gen.oneOf(White, Black).map(RoadWin) }

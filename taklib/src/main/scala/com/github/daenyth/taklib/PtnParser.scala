@@ -1,12 +1,13 @@
 package com.github.daenyth.taklib
 
+import com.github.daenyth.taklib.GameEndResult._
 import com.github.daenyth.taklib.Implicits.RichParsing
 
 import scala.collection.immutable.VectorBuilder
 import scala.util.parsing.combinator.RegexParsers
-import scalaz.{-\/, \/, \/-}
 import scalaz.std.vector._
 import scalaz.syntax.foldable._
+import scalaz.{-\/, \/, \/-}
 
 object PtnParser extends RegexParsers with RichParsing {
 

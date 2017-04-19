@@ -1,6 +1,6 @@
 package com.github.daenyth.opentak.protocol
 
-import com.github.daenyth.taklib._
+import com.github.daenyth.taklib.{GameEndResult, Stone}
 
 object PlaytakCodec {
 
@@ -47,6 +47,7 @@ object PlaytakCodec {
           import s._
           s"Game Start $gameNumber $size $whitePlayerusername vs $blackPlayerusername $yourColor"
         case Place(gameNumber, playStone) =>
+          import Stone._
           val stoneType = playStone.stone match {
             case _: Capstone => "C"
             case _: StandingStone => "W"
@@ -61,6 +62,7 @@ object PlaytakCodec {
         case UpdateTime(gameNumber, whiteTime, blackTime) =>
           s"Game#$gameNumber Time $whiteTime $blackTime"
         case o: GameOver =>
+          import GameEndResult._
           val result = o.result match {
             case RoadWin(player) => player.fold("0-R", "R-0")
             case DoubleRoad => "R-R" // Not actually supported by playtak or default rules, but different result sets can treat it differently.
