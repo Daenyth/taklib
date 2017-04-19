@@ -58,6 +58,10 @@ object Playtak {
     case object Welcome extends Outgoing
     case object LoginOrRegisterNow extends Outgoing
     case class WelcomeUser(username: Username) extends Outgoing
+
+    sealed trait GameEvent extends Outgoing {
+      def gameNumber: GameNumber
+    }
     case class GameListAdd(gameNumber: GameNumber,
                            whitePlayerusername: Username,
                            blackPlayerusername: Username,
@@ -66,7 +70,7 @@ object Playtak {
                            increment: Int,
                            halfMovesPlayed: Int,
                            playerToMove: Player)
-        extends Outgoing
+        extends GameEvent
     case class GameListRemove(gameNumber: GameNumber,
                               whitePlayerusername: Username,
                               blackPlayerusername: Username,
@@ -75,36 +79,36 @@ object Playtak {
                               increment: Int,
                               halfMovesPlayed: Int,
                               playerToMove: Player)
-        extends Outgoing
+        extends GameEvent
     case class GameStart(gameNumber: GameNumber,
                          size: Int,
                          whitePlayerusername: Username,
                          blackPlayerusername: Username,
                          yourColor: Player)
-        extends Outgoing
-    case class Place(gameNumber: GameNumber, playStone: PlayStone) extends Outgoing
-    case class Move(gameNumber: GameNumber, move: TLMove) extends Outgoing
+        extends GameEvent
+    case class Place(gameNumber: GameNumber, playStone: PlayStone) extends GameEvent
+    case class Move(gameNumber: GameNumber, move: TLMove) extends GameEvent
     case class UpdateTime(gameNumber: GameNumber, whiteTime: String, blackTime: String)
-        extends Outgoing // TODO check what type the time values are
-    case class GameOver(result: String) extends Outgoing
-    case class DrawOffered(gameNumber: GameNumber) extends Outgoing
-    case class DrawOfferRescinded(gameNumber: GameNumber) extends Outgoing
-    case class UndoRequested(gameNumber: GameNumber) extends Outgoing
-    case class UndoRequestRescinded(gameNumber: GameNumber) extends Outgoing
-    case class PerformUndo(gameNumber: GameNumber) extends Outgoing
-    case class GameAbandoned(gameNumber: GameNumber) extends Outgoing
+        extends GameEvent // TODO check what type the time values are
+    case class GameOver(gameNumber: GameNumber, result: String) extends GameEvent
+    case class DrawOffered(gameNumber: GameNumber) extends GameEvent
+    case class DrawOfferRescinded(gameNumber: GameNumber) extends GameEvent
+    case class UndoRequested(gameNumber: GameNumber) extends GameEvent
+    case class UndoRequestRescinded(gameNumber: GameNumber) extends GameEvent
+    case class PerformUndo(gameNumber: GameNumber) extends GameEvent
+    case class GameAbandoned(gameNumber: GameNumber) extends GameEvent
     case class SeekAdded(gameNumber: GameNumber,
                          username: Username,
                          size: Int,
                          time: String,
                          asPlayer: Option[Player])
-        extends Outgoing
+        extends GameEvent
     case class SeekRemoved(gameNumber: GameNumber,
                            username: Username,
                            size: Int,
                            time: String,
                            asPlayer: Option[Player])
-        extends Outgoing
+        extends GameEvent
     case class ObserveGame(gameNumber: GameNumber,
                            whitePlayerusername: Username,
                            blackPlayerusername: Username,
@@ -112,7 +116,7 @@ object Playtak {
                            time: String,
                            halfMovesPlayed: Int,
                            playerToMove: Player)
-        extends Outgoing
+        extends GameEvent
     case class Shout(username: Username, msg: String) extends Outgoing
     case class RoomJoined(name: RoomName) extends Outgoing
     case class RoomLeft(name: RoomName) extends Outgoing
