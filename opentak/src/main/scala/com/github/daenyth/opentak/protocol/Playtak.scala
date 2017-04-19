@@ -1,12 +1,16 @@
 package com.github.daenyth.opentak.protocol
 
-import com.github.daenyth.taklib.{PlayStone, Player, Move => TLMove}
+import com.github.daenyth.taklib.{BoardIndex, GameEndResult, PlayStone, Player}
 
 // See protocol description at https://github.com/chaitu236/TakServer
 object Playtak {
   case class GameNumber(value: Int) extends AnyVal
-  case class Username(value: String) extends AnyVal
-  case class RoomName(value: String) extends AnyVal
+  case class Username(value: String) extends AnyVal {
+    override def toString: String = value
+  }
+  case class RoomName(value: String) extends AnyVal {
+    override def toString: String = value
+  }
 
   sealed trait Incoming
 
@@ -29,7 +33,8 @@ object Playtak {
       def gameNumber: GameNumber
     }
     case class Place(gameNumber: GameNumber, playStone: PlayStone) extends GameCommand
-    case class Move(gameNumber: GameNumber, move: TLMove) extends GameCommand
+    case class Move(gameNumber: GameNumber, start: BoardIndex, end: BoardIndex, drops: Vector[Int])
+        extends GameCommand
     case class OfferDraw(gameNumber: GameNumber) extends GameCommand
     case class RescindDrawOffer(gameNumber: GameNumber) extends GameCommand
     case class Resign(gameNumber: GameNumber) extends GameCommand
@@ -87,10 +92,11 @@ object Playtak {
                          yourColor: Player)
         extends GameEvent
     case class Place(gameNumber: GameNumber, playStone: PlayStone) extends GameEvent
-    case class Move(gameNumber: GameNumber, move: TLMove) extends GameEvent
+    case class Move(gameNumber: GameNumber, start: BoardIndex, end: BoardIndex, drops: Vector[Int])
+        extends GameEvent
     case class UpdateTime(gameNumber: GameNumber, whiteTime: String, blackTime: String)
         extends GameEvent // TODO check what type the time values are
-    case class GameOver(gameNumber: GameNumber, result: String) extends GameEvent
+    case class GameOver(gameNumber: GameNumber, result: GameEndResult) extends GameEvent
     case class DrawOffered(gameNumber: GameNumber) extends GameEvent
     case class DrawOfferRescinded(gameNumber: GameNumber) extends GameEvent
     case class UndoRequested(gameNumber: GameNumber) extends GameEvent
