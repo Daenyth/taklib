@@ -57,7 +57,7 @@ libraryDependencies in takcli ++= Seq(
 )
 
 resolvers in tpsserver += Resolver.sonatypeRepo("snapshots")
-val http4sVersion = "0.17.0-SNAPSHOT"
+val http4sVersion = "0.17.0-M1"
 val circeVersion = "0.7.0"
 libraryDependencies in tpsserver ++= Seq(
   "io.circe" %% "circe-core"    % circeVersion,
