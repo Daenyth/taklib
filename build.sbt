@@ -42,9 +42,10 @@ scalacOptions in (opentak, Compile, console) ~= (_.filterNot(Set("-Xfatal-warnin
 resolvers += Resolver.sonatypeRepo("releases")
 
 val scalazVersion = "7.2.8"
+val parserCombinators = "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.5"
 val dependencies = Seq(
   "org.scalaz" %% "scalaz-core" % scalazVersion,
-  "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.5",
+  parserCombinators,
   "org.scala-graph" %% "graph-core" % "1.11.4"
 )
 val testDependencies = Seq(
@@ -77,6 +78,10 @@ libraryDependencies in tpsserver ++= Seq(
 
   "ch.qos.logback" % "logback-classic" % "1.2.1"
 ) ++ testDependencies
+
+libraryDependencies in opentak += parserCombinators
+libraryDependencies in opentak ++= testDependencies
+
 
 initialCommands in (taklib, console) += "import com.github.daenyth.taklib._"
 

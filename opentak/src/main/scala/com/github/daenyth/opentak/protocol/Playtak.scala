@@ -22,7 +22,7 @@ object Playtak {
     trait Login extends Incoming
     case class UserLogin(username: Username, password: String) extends Login
     case object GuestLogin extends Login
-    case object Logout
+    case object Logout extends Incoming
 
     case class Seek(size: Int, time: Int, increment: Int, asPlayer: Option[Player])
         extends Incoming
@@ -54,7 +54,7 @@ object Playtak {
     case class LeaveRoom(name: RoomName) extends Incoming
     case class Tell(username: Username, msg: String) extends Incoming
 
-    case object Ping
+    case object Ping extends Incoming
   }
 
   sealed trait Outgoing
