@@ -38,9 +38,7 @@ object Main {
   }
 
   def runGameTurn(g: Game): Task[MoveResult[Game]] =
-    printGame(g) *> runAction(g.nextPlayer).map(g.takeTurn)
-
-  def runAction(nextPlayer: Player): Task[TurnAction] = promptAction.map(_(nextPlayer))
+    printGame(g) *> promptAction.map(g.takeTurn)
 
   def printGame(g: Game) = Task {
     val nextPlayInfo = g.turnNumber match {
@@ -70,7 +68,7 @@ object Main {
     g.currentBoard.boardPositions.map(_.reverse).transpose.map(_.map(_.toTps).mkString("\t")).mkString("\n")
   }
 
-  def promptAction: Task[Player => TurnAction] =
+  def promptAction: Task[TurnAction] =
     Task(StdIn.readLine("Your Move?\n  > "))
       .flatMap { input =>
         if (input == null) { throw CleanExit } else
@@ -78,7 +76,7 @@ object Main {
             .parseEither(PtnParser.turnAction, input)
             .fold(
               err => Task.fail(PtnParseError(err)),
-              toAction => Task.now(toAction)
+              Task.now
             )
       }
       .handleWith {

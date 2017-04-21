@@ -112,10 +112,11 @@ object DefaultRules extends RuleSet {
               case None =>
                 Option(InvalidMove(s"Cannot move empty Stack at ${m.from}"))
               case Some(controller) =>
-                (controller === action.player)
+                val player = game.nextPlayer
+                (controller === player)
                   .orElse(
                     InvalidMove(
-                      s"${action.player} cannot move stack controlled by $controller at ${m.from}"
+                      s"$player cannot move stack controlled by $controller at ${m.from}"
                     )
                   )
             }
@@ -124,15 +125,9 @@ object DefaultRules extends RuleSet {
     }
   }
 
-  val playerOwnsStone: GameRule = { (game, action) =>
-    (action.player == game.nextPlayer)
-      .orElse(InvalidMove(s"${action.player} is not the correct color for this turn"))
-  }
-
   override val rules: List[GameRule] = List(
     actionIndexIsValid,
-    actingPlayerControlsStack,
-    playerOwnsStone
+    actingPlayerControlsStack
   )
 
   override val stoneCounts: Map[Int, (Int, Int)] = Map(
@@ -196,7 +191,9 @@ class Game private (val size: Int,
   override def toString = {
     def pretty(ga: GameAction) = ga match {
       case _: StartGameWithBoard => "{New Game}"
-      case t: TurnAction => s"${t.player} ${t.ptn}"
+      case t: TurnAction =>
+        val lastPlayer = nextPlayer.fold(White, Black) // Take the opposite player
+        s"$lastPlayer ${t.ptn}"
     }
     s"<Game ${size}x$size lastMove=[${pretty(history.head._1)}] turn=$turnNumber>"
   }
@@ -207,7 +204,7 @@ class Game private (val size: Int,
 
   def takeTurn(action: TurnAction): MoveResult[Game] =
     rules.check(this, action).getOrElse {
-      currentBoard.applyAction(action).flatMap { nextState =>
+      currentBoard.applyAction(nextPlayer, action).flatMap { nextState =>
         val newHistory = (action, nextState) <:: history
         val game = new Game(size, turnNumber + 1, rules, newHistory)
         game.winner match {
