@@ -6,7 +6,19 @@ import com.github.daenyth.taklib._
 
 import scala.util.parsing.combinator.RegexParsers
 
+/**
+ * Playtak protocol encoding/decoding between the wire
+ * representation (string) and in-library representation (case classes)
+ *
+ * See PlaytakCodec#encode and PlaytakCodec#decode
+ */
 object PlaytakCodec {
+  def encode(outgoing: Playtak.Outgoing): String =
+    Outgoing.encode(outgoing)
+  def decode(input: String): Either[String, Playtak.Incoming] =
+    Incoming.parseEither(Incoming.incoming, input).toEither
+
+  /* Abandon hope all ye who scroll below here */
 
   object Incoming extends RegexParsers with RichParsing {
     def decode(input: String): Either[String, Playtak.Incoming] =
