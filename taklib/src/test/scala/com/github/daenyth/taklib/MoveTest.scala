@@ -8,15 +8,12 @@ class MoveTest extends FlatSpec with Matchers with MoveResultValues {
     val board = Board.ofSize(5)
     val idx = BoardIndex(1, 1)
     val neighbor = idx.neighbor(Right)
-    val finalBoard = board.applyActions(
-      PlayFlat(White, idx),
-      PlayFlat(Black, neighbor),
-      Move(White, idx, Right, None, None)
-    )
     val result = for {
-      b <- finalBoard
-      a1 <- b.stackAt(idx)
-      a2 <- b.stackAt(neighbor)
+      a <- board.applyAction(White, PlayFlat(idx))
+      b <- a.applyAction(Black, PlayFlat(neighbor))
+      finalBoard <- b.applyAction(White, Move(idx, Right, None, None))
+      a1 <- finalBoard.stackAt(idx)
+      a2 <- finalBoard.stackAt(neighbor)
     } yield (a1, a2)
     val (a1, a2) = result.value
     a1 shouldBe Stack.empty
@@ -27,8 +24,8 @@ class MoveTest extends FlatSpec with Matchers with MoveResultValues {
     val board = Board.ofSize(5)
     val idx = BoardIndex(1, 1)
     val result = board.applyActions(
-      PlayFlat(White, idx),
-      Move(White, idx, Left, Some(1), Some(Vector(1)))
+      White -> PlayFlat(idx),
+      White -> Move(idx, Left, Some(1), Some(Vector(1)))
     )
     result shouldBe an[InvalidMove]
   }
@@ -38,10 +35,10 @@ class MoveTest extends FlatSpec with Matchers with MoveResultValues {
     val j = i.neighbor(Right)
     val board = Board
       .ofSize(5)
-      .applyActions(PlayStanding(White, i), PlayCapstone(Black, j))
+      .applyActions(White -> PlayStanding(i), Black -> PlayCapstone(j))
       .value
     val result = for {
-      afterMove <- board.applyAction(Move(Black, j, Left, None, None))
+      afterMove <- board.applyAction(Black, Move(j, Left, None, None))
       stack <- afterMove.stackAt(i)
     } yield stack
     result.value shouldEqual Stack(Vector(FlatStone(White), Capstone(Black)))
@@ -54,19 +51,19 @@ class MoveTest extends FlatSpec with Matchers with MoveResultValues {
     val board = Board
       .ofSize(5)
       .applyActions(
-        PlayStanding(White, i),
-        PlayFlat(White, j),
-        PlayCapstone(Black, k),
-        Move(Black, k, Left, None, None)
+        White -> PlayStanding(i),
+        White -> PlayFlat(j),
+        Black -> PlayCapstone(k),
+        Black -> Move(k, Left, None, None)
       )
       .value
-    val result = board.applyAction(Move(Black, j, Left, None, None))
+    val result = board.applyAction(Black, Move(j, Left, None, None))
     result shouldBe an[InvalidMove]
   }
 
   "An existing stack" should "prevent a new stack from being played at that space" in {
     val idx = BoardIndex(1, 1)
-    val board = Board.ofSize(5).applyAction(PlayFlat(White, idx)).value
-    board.applyAction(PlayFlat(White, idx)) shouldBe an[InvalidMove]
+    val board = Board.ofSize(5).applyAction(White, PlayFlat(idx)).value
+    board.applyAction(White, PlayFlat(idx)) shouldBe an[InvalidMove]
   }
 }

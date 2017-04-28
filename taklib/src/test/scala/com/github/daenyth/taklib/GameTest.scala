@@ -52,15 +52,15 @@ class GameTest
 
   "A board with 5 stones in a row" should "have a road win" in {
     val board = Board.ofSize(5)
-    val roadBoard = board.applyActions((1 to 5).map(n => PlayFlat(White, BoardIndex(1, n))))
+    val roadBoard = board.applyActions((1 to 5).map(n => White -> PlayFlat(BoardIndex(1, n))))
     val game = Game.fromBoard(roadBoard.value)
     game.winner.value shouldBe RoadWin(White)
   }
 
   "Four flats and a capstone" should "have a road win" in {
     val board = Board.ofSize(5)
-    val moves = (1 to 4).map(n => PlayFlat(Black, BoardIndex(1, n))) ++ Vector(
-        PlayCapstone(Black, BoardIndex(1, 5))
+    val moves = (1 to 4).map(n => Black -> PlayFlat(BoardIndex(1, n))) ++ Vector(
+        Black -> PlayCapstone(BoardIndex(1, 5))
       )
     val roadBoard = board.applyActions(moves)
     val game = Game.fromBoard(roadBoard.value)
@@ -69,8 +69,8 @@ class GameTest
 
   "Four flats and a standing stone" should "not be a win" in {
     val board = Board.ofSize(5)
-    val moves = (1 to 4).map(n => PlayFlat(Black, BoardIndex(1, n))) ++ Vector(
-        PlayStanding(Black, BoardIndex(1, 5))
+    val moves = (1 to 4).map(n => Black -> PlayFlat(BoardIndex(1, n))) ++ Vector(
+        Black -> PlayStanding(BoardIndex(1, 5))
       )
     val roadBoard = board.applyActions(moves)
     val game = Game.fromBoard(roadBoard.value)
@@ -79,21 +79,21 @@ class GameTest
 
   "A player" should "be able to move a stack they control" in {
     val i = BoardIndex(1, 1)
-    val board = Board.ofSize(5).applyAction(PlayFlat(White, i)).value
+    val board = Board.ofSize(5).applyAction(White, PlayFlat(i)).value
     val game = Game.fromBoard(board)
-    DefaultRules.actingPlayerControlsStack(game, Move(White, i, Right, None, None)) shouldBe None
+    DefaultRules.actingPlayerControlsStack(game, Move(i, Right, None, None)) shouldBe None
   }
 
   "A player" should "not be able to move a stack they don't control" in {
     val i = BoardIndex(1, 1)
-    val board = Board.ofSize(5).applyAction(PlayFlat(Black, i)).value
+    val board = Board.ofSize(5).applyAction(Black, PlayFlat(i)).value
     val game = Game.fromBoard(board)
-    DefaultRules.actingPlayerControlsStack(game, Move(White, i, Right, None, None)) shouldBe 'nonEmpty
+    DefaultRules.actingPlayerControlsStack(game, Move(i, Right, None, None)) shouldBe 'nonEmpty
   }
 
   "The first move" should "be taken with a black flatstone" in {
     val game = Game.ofSize(5).value
-    val result = game.takeTurn(PlayFlat(Black, BoardIndex(1, 1)))
+    val result = game.takeTurn(PlayFlat(BoardIndex(1, 1)))
     result shouldBe an[OkMove[_]]
   }
 
@@ -105,8 +105,8 @@ class GameTest
 
   "A game's tps" should "round trip to the same game" in {
     val game1 = (for {
-      a <- Game.ofSize(5).value.takeTurn(PlayFlat(Black, BoardIndex(1, 1)))
-      b <- a.takeTurn(PlayFlat(White, BoardIndex(5, 1)))
+      a <- Game.ofSize(5).value.takeTurn(PlayFlat(BoardIndex(1, 1)))
+      b <- a.takeTurn(PlayFlat(BoardIndex(5, 1)))
     } yield b).value
     val tps = game1.toTps
     val game2 = Game.fromTps(tps).value
@@ -117,7 +117,7 @@ class GameTest
 
   "A long game" should "be playable without a problem" in {
     // https://www.playtak.com/games/153358/view
-    val maybeMoves: Vector[String \/ (Player => TurnAction)] = Vector(
+    val maybeMoves: Vector[String \/ TurnAction] = Vector(
       "a6",
       "a1",
       "c3",
@@ -214,13 +214,7 @@ class GameTest
       "5c1>14",
       "e3"
     ).map { PtnParser.parseEither(PtnParser.turnAction, _) }
-    val toActions: Vector[Player => TurnAction] = maybeMoves.sequenceU.value
-    val actions = toActions.zipWithIndex.map {
-      case (action, 0) => action(Black)
-      case (action, 1) => action(White)
-      case (action, n) if n % 2 == 0 => action(White)
-      case (action, _) => action(Black)
-    }
+    val actions: Vector[TurnAction] = maybeMoves.sequenceU.value
     val game = actions.foldLeftM[MoveResult, Game](Game.ofSize(6).value) { (game, action) => game.takeTurn(action) }
     game should matchPattern { case GameOver(FlatWin(White), _) => () }
   }

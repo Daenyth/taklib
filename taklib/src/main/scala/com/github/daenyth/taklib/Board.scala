@@ -62,35 +62,37 @@ case class Board(size: Int, boardPositions: BoardLayout) {
       BoardIndex(rank + 1, file + 1) -> boardPositions(rank)(file)
   }.toVector
 
-  def applyAction(action: TurnAction): MoveResult[Board] = action match {
+  def applyAction(actingPlayer: Player, action: TurnAction): MoveResult[Board] = action match {
     case PlayStone(at, stone) =>
       stackAt(at).flatMap {
         case s if s.nonEmpty => InvalidMove(s"A stack already exists at ${at.name}")
         case _ =>
-          val stack = Stack.of(stone)
+          val stack = Stack.of(stone(actingPlayer))
           val newPositions = setStackAt(boardPositions, at, stack)
           OkMove(Board(size, newPositions))
       }
     case m: Move => doMoveAction(m)
   }
 
-  def applyActions(actions: Seq[TurnAction]): MoveResult[Board] =
+  def applyActions(actions: Seq[(Player, TurnAction)]): MoveResult[Board] =
     actions.headOption.fold[MoveResult[Board]](InvalidMove("Tried to apply an empty seq of actions")) {
       a => applyActions(a, actions.tail: _*)
     }
 
   @tailrec
-  final def applyActions(a: TurnAction, as: TurnAction*): MoveResult[Board] =
+  final def applyActions(pa: (Player, TurnAction), pas: (Player, TurnAction)*): MoveResult[Board] = {
+    val (actingPlayer, a) = pa
     // Explicit match instead of map/flatmap to appease @tailrec
-    applyAction(a) match {
+    applyAction(actingPlayer, a) match {
       case i: InvalidMove => i
       case o: GameOver => o
-      case s @ OkMove(newState) =>
-        as.toList match {
+      case s@OkMove(newState) =>
+        pas.toList match {
           case Nil => s
           case nextMove :: moreMoves => newState.applyActions(nextMove, moreMoves: _*)
         }
     }
+  }
 
   private[taklib] def doMoveAction(m: Move): MoveResult[Board] = {
     @tailrec

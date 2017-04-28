@@ -7,13 +7,11 @@ import scalaz.Monad
 sealed trait GameAction
 case class StartGameWithBoard(board: Board) extends GameAction
 sealed trait TurnAction extends GameAction {
-  def player: Player // TODO maybe get rid of this - makes ptn parsing hard
-
   def ptn: String = this match {
-    case PlayFlat(_, at) => at.name
-    case PlayStanding(_, at) => s"S${at.name}"
-    case PlayCapstone(_, at) => s"C${at.name}"
-    case Move(_, from, direction, count, drops) =>
+    case PlayFlat(at) => at.name
+    case PlayStanding(at) => s"S${at.name}"
+    case PlayCapstone(at) => s"C${at.name}"
+    case Move(from, direction, count, drops) =>
       // Omit count+drops if moving whole stack or one piece
       val num =
         drops match {
@@ -29,24 +27,23 @@ sealed trait TurnAction extends GameAction {
   }
 }
 object PlayStone {
-  def unapply(p: PlayStone): Option[(BoardIndex, Stone)] =
+  def unapply(p: PlayStone): Option[(BoardIndex, Player => Stone)] =
     Some((p.at, p.stone))
 }
 sealed trait PlayStone extends TurnAction {
   def at: BoardIndex
-  def stone: Stone
+  def stone: Player => Stone
 }
-case class PlayFlat(player: Player, at: BoardIndex) extends PlayStone {
-  val stone = FlatStone(player)
+case class PlayFlat(at: BoardIndex) extends PlayStone {
+  val stone = FlatStone.apply _
 }
-case class PlayStanding(player: Player, at: BoardIndex) extends PlayStone {
-  val stone = StandingStone(player)
+case class PlayStanding(at: BoardIndex) extends PlayStone {
+  val stone = StandingStone.apply _
 }
-case class PlayCapstone(player: Player, at: BoardIndex) extends PlayStone {
-  val stone = Capstone(player)
+case class PlayCapstone(at: BoardIndex) extends PlayStone {
+  val stone = Capstone.apply _
 }
-case class Move(player: Player,
-                from: BoardIndex,
+case class Move(from: BoardIndex,
                 direction: MoveDirection,
                 count: Option[Int],
                 drops: Option[Vector[Int]])

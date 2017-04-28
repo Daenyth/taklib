@@ -23,8 +23,7 @@ object TpsServer {
       .leftMap(err => s"Move: $err")
       .validationNel
     (gameE |@| moveE) apply {
-      case (game, toAction) =>
-        game.takeTurn(toAction(game.nextPlayer))
+      case (game, action) => game.takeTurn(action)
     }
   }
 

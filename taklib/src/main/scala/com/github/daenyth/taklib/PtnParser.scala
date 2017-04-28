@@ -19,24 +19,10 @@ object PtnParser extends RegexParsers with RichParsing {
     val file = str.charAt(1).toString.toInt
     BoardIndex(rank, file)
   }
-  val playFlat: Parser[Player => PlayFlat] =
-    boardIndex ^^ { idx => player =>
-      PlayFlat(player, idx)
-    }
-  val playStanding: Parser[Player => PlayStanding] =
-    "S".r ~ boardIndex ^^ {
-      case (_ ~ idx) =>
-        player =>
-          PlayStanding(player, idx)
-    }
-  val playCapstone: Parser[Player => PlayCapstone] =
-    "C".r ~ boardIndex ^^ {
-      case (_ ~ idx) =>
-        player =>
-          PlayCapstone(player, idx)
-    }
-  val playStone: Parser[Player => PlayStone] =
-    playFlat | playStanding | playCapstone
+  val playFlat: Parser[PlayFlat] = boardIndex ^^ { idx => PlayFlat(idx) }
+  val playStanding: Parser[PlayStanding] = "S".r ~ boardIndex ^^ { case _ ~ idx => PlayStanding(idx) }
+  val playCapstone: Parser[PlayCapstone] = "C".r ~ boardIndex ^^ { case _ ~ idx => PlayCapstone(idx) }
+  val playStone: Parser[PlayStone] = playFlat | playStanding | playCapstone
 
   val moveDirection: Parser[MoveDirection] = "[-+<>]".r ^^ {
     case "-" => Down
@@ -45,7 +31,7 @@ object PtnParser extends RegexParsers with RichParsing {
     case ">" => Right
   }
 
-  val moveStones: Parser[Player => Move] = {
+  val moveStones: Parser[Move] = {
     val count = "[12345678]".r ^^ { _.toInt }
     val drops = "[12345678]+".r ^^ { _.toVector.map(_.toString.toInt) }
     (count.? ~ boardIndex ~ moveDirection ~ drops.?) ^^ {
@@ -53,14 +39,13 @@ object PtnParser extends RegexParsers with RichParsing {
             (idx: BoardIndex) ~
             (direction: MoveDirection) ~
             (drops: Option[Vector[Int]]) =>
-        player =>
-          Move(player, idx, direction, count, drops)
+          Move(idx, direction, count, drops)
     }
   }
 
   val infoMark: Parser[String] = "'{1,2}".r | "[!?]{1,2}".r
 
-  val turnAction: Parser[Player => TurnAction] = (moveStones | playStone) ~ infoMark.? ^^ {
+  val turnAction: Parser[TurnAction] = (moveStones | playStone) ~ infoMark.? ^^ {
     case action ~ _ => action
   }
 
@@ -73,24 +58,24 @@ object PtnParser extends RegexParsers with RichParsing {
 
   val comment: Parser[String] = """(?s)\{(.*?)\}""".r
 
-  val fullTurnLine: Parser[(Int, Player => TurnAction, Player => TurnAction)] =
+  val fullTurnLine: Parser[(Int, TurnAction, TurnAction)] =
     """\d+\.""".r ~ turnAction ~ turnAction ~ comment.? ^^ {
       case turnNumber ~ whiteAction ~ blackAction ~ _comment =>
         (turnNumber.dropRight(1).toInt, whiteAction, blackAction)
     }
 
-  val lastTurnLine: Parser[(Int, Player => TurnAction, Option[Player => TurnAction])] =
+  val lastTurnLine: Parser[(Int, TurnAction, Option[TurnAction])] =
     """\d+\.""".r ~ turnAction ~ turnAction.? ~ comment.? ^^ {
       case turnNumber ~ whiteAction ~ blackAction ~ _comment =>
         (turnNumber.dropRight(1).toInt, whiteAction, blackAction)
     }
 
-  def gameHistory(startingTurn: Int, skipFirst: Boolean): Parser[Vector[Player => TurnAction]] =
+  def gameHistory(startingTurn: Int, skipFirst: Boolean): Parser[Vector[TurnAction]] =
     rep(fullTurnLine) ~ lastTurnLine.? ^^? {
       case fullturns ~ lastTurn =>
         var nextTurnNumber = startingTurn
         val iter = fullturns.iterator
-        val history = new VectorBuilder[Player => TurnAction]
+        val history = new VectorBuilder[TurnAction]
         \/.fromTryCatchNonFatal {
           while (iter.hasNext) {
             val (turnNumber, whiteAction, blackAction) = iter.next()
@@ -185,7 +170,6 @@ object PtnParser extends RegexParsers with RichParsing {
         initialGame <- getInitialGame(size, ruleSet)
       } yield {
         val finalGame = history.zipWithIndex
-          .map { case (a, i) => (a(ruleSet.expectedStoneColor(i + 1)), i) }
           .foldLeftM[MoveResult, Game](initialGame) {
             case (game, (action, actionIdx)) =>
               game.takeTurn(action).noteInvalid(r => s"(Move #${actionIdx + 1}) $r")
