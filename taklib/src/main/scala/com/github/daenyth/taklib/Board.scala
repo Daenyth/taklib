@@ -2,6 +2,7 @@ package com.github.daenyth.taklib
 
 import com.github.daenyth.taklib.Board._
 import com.github.daenyth.taklib.Implicits.RichBoolean
+import com.github.daenyth.taklib.Stone._
 
 import scala.annotation.tailrec
 import scala.collection.immutable.IndexedSeq
@@ -239,6 +240,9 @@ sealed trait Stone {
   val owner: Player
   val isRoadStone: Boolean
 }
-case class Capstone(owner: Player) extends Stone { val isRoadStone = true }
-case class StandingStone(owner: Player) extends Stone { val isRoadStone = false }
-case class FlatStone(owner: Player) extends Stone { val isRoadStone = true }
+case object Stone {
+  case class Capstone(owner: Player) extends Stone { val isRoadStone = true }
+  case class StandingStone(owner: Player) extends Stone { val isRoadStone = false }
+  case class FlatStone(owner: Player) extends Stone { val isRoadStone = true }
+}
+

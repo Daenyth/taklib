@@ -1,6 +1,7 @@
 package com.github.daenyth.taklib
 
 import com.github.daenyth.taklib.Implicits.RichParsing
+import com.github.daenyth.taklib.Stone._
 
 import scala.annotation.tailrec
 import scala.util.Try

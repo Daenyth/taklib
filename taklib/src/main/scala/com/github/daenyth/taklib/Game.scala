@@ -1,5 +1,6 @@
 package com.github.daenyth.taklib
 
+import com.github.daenyth.taklib.GameEndResult._
 import com.github.daenyth.taklib.Implicits.RichBoolean
 import com.github.daenyth.taklib.RuleSet.GameRule
 
@@ -16,6 +17,7 @@ import scalaz.syntax.order._
 import scalaz.syntax.semigroup._
 import scalaz.{Equal, NonEmptyList, Semigroup, \/}
 
+sealed trait GameEndResult
 object GameEndResult {
   implicit val gerInstance: Semigroup[GameEndResult] with Equal[GameEndResult] =
     new Semigroup[GameEndResult] with Equal[GameEndResult] {
@@ -43,15 +45,15 @@ object GameEndResult {
         case _ => false
       }
     }
+
+  sealed trait RoadResult extends GameEndResult
+  sealed trait FlatResult extends GameEndResult
+  case class RoadWin(player: Player) extends RoadResult
+  case class FlatWin(player: Player) extends FlatResult
+  case class WinByResignation(player: Player) extends GameEndResult
+  case object DoubleRoad extends RoadResult
+  case object Draw extends FlatResult
 }
-sealed trait GameEndResult
-sealed trait RoadResult extends GameEndResult
-sealed trait FlatResult extends GameEndResult
-case class RoadWin(player: Player) extends RoadResult
-case class FlatWin(player: Player) extends FlatResult
-case class WinByResignation(player: Player) extends GameEndResult
-case object DoubleRoad extends RoadResult
-case object Draw extends FlatResult
 
 object RuleSet {
   type GameRule = (Game, TurnAction) => Option[InvalidMove]
@@ -63,10 +65,11 @@ trait RuleSet {
     @tailrec
     def go(rules: List[GameRule]): Option[InvalidMove] = rules match {
       case Nil => None
-      case rule :: rs => rule(game, action) match {
-        case s: Some[_] => s
-        case None => go(rs)
-      }
+      case rule :: rs =>
+        rule(game, action) match {
+          case s: Some[_] => s
+          case None => go(rs)
+        }
     }
     go(rules)
   }
@@ -204,15 +207,16 @@ class Game private (val size: Int,
 
   def takeTurn(action: TurnAction): MoveResult[Game] =
     rules.check(this, action).getOrElse {
-      currentBoard.applyAction(nextPlayer, action).flatMap { nextState =>
-        val newHistory = (action, nextState) <:: history
-        val game = new Game(size, turnNumber + 1, rules, newHistory)
-        game.winner match {
-          case Some(gameEnd) => GameOver(gameEnd, game)
-          case None => OkMove(game)
+        currentBoard.applyAction(nextPlayer, action).flatMap { nextState =>
+          val newHistory = (action, nextState) <:: history
+          val game = new Game(size, turnNumber + 1, rules, newHistory)
+          game.winner match {
+            case Some(gameEnd) => GameOver(gameEnd, game)
+            case None => OkMove(game)
+          }
         }
       }
-    }.noteInvalid(action)
+      .noteInvalid(action)
 
   def undo: MoveResult[Game] =
     history.tail.toNel.map { prev =>
@@ -242,11 +246,12 @@ class Game private (val size: Int,
       } yield UnDiEdge(idx, n)
       Graph.from(xs, edges)
     }
-    val roadStones: Vector[(BoardIndex, Player)] = currentBoard.stacksWithIndex.flatMap { case (idx, stack) =>
-      stack.top match {
-        case Some(stone) if stone.isRoadStone => Vector(idx -> stone.owner)
-        case _ => Vector.empty
-      }
+    val roadStones: Vector[(BoardIndex, Player)] = currentBoard.stacksWithIndex.flatMap {
+      case (idx, stack) =>
+        stack.top match {
+          case Some(stone) if stone.isRoadStone => Vector(idx -> stone.owner)
+          case _ => Vector.empty
+        }
     }
     val (whiteRoadStones, blackRoadStones) = roadStones.partition { _._2 == White }
     val whiteIndexes = whiteRoadStones.map(_._1)
@@ -276,6 +281,7 @@ class Game private (val size: Int,
   }
 
   private def flatWin: Option[FlatResult] = {
+    import Stone._
     val allStacks = currentBoard.boardPositions.flatten.toList
     @tailrec
     def go(stacks: List[Stack],

@@ -35,13 +35,13 @@ sealed trait PlayStone extends TurnAction {
   def stone: Player => Stone
 }
 case class PlayFlat(at: BoardIndex) extends PlayStone {
-  val stone = FlatStone.apply _
+  val stone = Stone.FlatStone.apply _
 }
 case class PlayStanding(at: BoardIndex) extends PlayStone {
-  val stone = StandingStone.apply _
+  val stone = Stone.StandingStone.apply _
 }
 case class PlayCapstone(at: BoardIndex) extends PlayStone {
-  val stone = Capstone.apply _
+  val stone = Stone.Capstone.apply _
 }
 case class Move(from: BoardIndex,
                 direction: MoveDirection,

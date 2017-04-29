@@ -1,5 +1,6 @@
 package com.github.daenyth.taklib
 
+import com.github.daenyth.taklib.Stone._
 import org.scalatest.{FlatSpec, Matchers}
 
 class MoveTest extends FlatSpec with Matchers with MoveResultValues {
