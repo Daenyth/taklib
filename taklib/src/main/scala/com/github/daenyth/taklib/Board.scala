@@ -6,19 +6,22 @@ import com.github.daenyth.taklib.Stone._
 
 import scala.annotation.tailrec
 import scala.collection.immutable.IndexedSeq
-import scalaz.std.vector._
-import scalaz.syntax.either._
-import scalaz.syntax.monoid._
-import scalaz.{Equal, \/}
+import cats.syntax.either._
+import cats.syntax.monoid._
+import cats.instances.vector._
+import cats.{Eq => Equal}
+
+import scala.util.Try
 
 object Board {
+  type \/[A, B] = Either[A, B]
 
   type BoardLayout = Vector[Vector[Stack]]
 
-  /** Build a board from Tak Positional System; -\/ if tps is invalid */
-  def fromTps(tps: String): String \/ Board = TpsParser.parse(TpsParser.tps, tps) match {
-    case TpsParser.Success((board, _, _), _) => board.right
-    case err: TpsParser.NoSuccess => err.msg.left
+  /** Build a board from Tak Positional System; scala.Left if tps is invalid */
+  def fromTps(tps: String): Either[String, Board] = TpsParser.parse(TpsParser.tps, tps) match {
+    case TpsParser.Success((board, _, _), _) => board.asRight
+    case err: TpsParser.NoSuccess => err.msg.asLeft
   }
 
   def ofSize(size: Int): Board =
@@ -34,7 +37,7 @@ object Board {
                              index: BoardIndex,
                              stack: Stack): MoveResult[BoardLayout] = {
     val (i, j) = (index.file - 1, index.rank - 1)
-    val stackAtIdx: MoveResult[Stack] = \/.fromTryCatchNonFatal(positions(i)(j))
+    val stackAtIdx: MoveResult[Stack] = Either.fromTry(Try(positions(i)(j)))
       .fold(_ => InvalidMove(s"$index is not on the board"), OkMove.apply)
     val newStack: MoveResult[Stack] = stackAtIdx.flatMap {
       case Stack(Vector()) => OkMove(stack)
@@ -151,7 +154,7 @@ case class Board(size: Int, boardPositions: BoardLayout) {
   }
 
   def stackAt(index: BoardIndex): MoveResult[Stack] =
-    \/.fromTryCatchNonFatal(boardPositions(index.file - 1)(index.rank - 1)).fold(
+    Either.fromTry(Try(boardPositions(index.file - 1)(index.rank - 1))).fold(
       _ => InvalidMove(s"$index is not on the board"),
       OkMove(_)
     )
@@ -224,7 +227,7 @@ case class Stack(pieces: Vector[Stone]) {
 
 object Player {
   implicit val playerInstance: Equal[Player] = new Equal[Player] {
-    override def equal(a1: Player, a2: Player): Boolean = a1 == a2
+    override def eqv(a1: Player, a2: Player): Boolean = a1 == a2
   }
 }
 sealed trait Player {

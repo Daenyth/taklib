@@ -1,13 +1,15 @@
 package com.github.daenyth.taklib
 
+import cats.free.Free
 import com.github.daenyth.taklib.GameEndResult._
 import com.github.daenyth.taklib.Implicits.RichParsing
 
 import scala.collection.immutable.VectorBuilder
 import scala.util.parsing.combinator.RegexParsers
-import scalaz.std.vector._
-import scalaz.syntax.foldable._
-import scalaz.{-\/, \/, \/-}
+import cats.syntax.either._
+import cats.instances.vector._
+
+import scala.util.Try
 
 object PtnParser extends RegexParsers with RichParsing {
 
@@ -77,7 +79,7 @@ object PtnParser extends RegexParsers with RichParsing {
         var nextTurnNumber = startingTurn
         val iter = fullturns.iterator
         val history = new VectorBuilder[TurnAction]
-        \/.fromTryCatchNonFatal {
+        Either.fromTry {Try {
           while (iter.hasNext) {
             val (turnNumber, whiteAction, blackAction) = iter.next()
             require(
@@ -106,7 +108,8 @@ object PtnParser extends RegexParsers with RichParsing {
               blackAction.foreach(history += _)
           }
           history.result()
-        }.leftMap(_.getMessage)
+        }
+    }.leftMap(_.getMessage)
     }
 
   val roadWin: Parser[RoadWin] = "R-0" ^^ { _ =>
@@ -132,19 +135,19 @@ object PtnParser extends RegexParsers with RichParsing {
   def ptn(ruleSet: RuleSet): Parser[(PtnHeaders, MoveResult[Game])] = headers >>=? { gameHeaders =>
     gameHeaders.get("TPS") match {
       case None =>
-        \/-(gameHistoryFromTurn(ruleSet, gameHeaders, 1, skipFirst = false, Game.ofSize))
+        scala.Right(gameHistoryFromTurn(ruleSet, gameHeaders, 1, skipFirst = false, Game.ofSize))
       case Some(tps) =>
         TpsParser.parseEither(TpsParser.tps, tps).flatMap {
           case (board, turnNumber, nextPlayer) =>
-            def getGame(size: Int, ruleSet: RuleSet): String \/ Game = {
+            def getGame(size: Int, ruleSet: RuleSet): Either[String, Game] = {
               val gameTurnNumber = (2 * turnNumber) + nextPlayer.fold(1, 0)
               val game = Game.fromBoard(board, gameTurnNumber)
               if (game.size != size)
-                -\/(s"Game headers declared size $size but TPS contained size ${game.size}")
-              else \/-(game)
+                scala.Left(s"Game headers declared size $size but TPS contained size ${game.size}")
+              else scala.Right(game)
             }
 
-            \/-(
+            scala.Right(
               gameHistoryFromTurn(
                 ruleSet,
                 gameHeaders,
@@ -162,16 +165,16 @@ object PtnParser extends RegexParsers with RichParsing {
       gameHeaders: PtnHeaders,
       startingTurn: Int,
       skipFirst: Boolean,
-      getInitialGame: (Int, RuleSet) => String \/ Game
+      getInitialGame: (Int, RuleSet) => Either[String, Game]
   ): Parser[(PtnHeaders, MoveResult[Game])] =
     gameHistory(startingTurn, skipFirst) ^^? { history =>
       for {
-        size <- \/.fromTryCatchNonFatal(gameHeaders("Size").toInt)
+        size <- Either.fromTry(Try(gameHeaders("Size").toInt))
           .leftMap(ex => s"Unable to parse game size from header ${ex.getMessage}")
         initialGame <- getInitialGame(size, ruleSet)
       } yield {
-        val finalGame = history.zipWithIndex
-          .foldLeftM[MoveResult, Game](initialGame) {
+        val finalGame =
+          Free.foldLeftM(history.zipWithIndex, initialGame) {
             case (game, (action, actionIdx)) =>
               game.takeTurn(action).noteInvalid(r => s"(Move #${actionIdx + 1}) $r")
           }

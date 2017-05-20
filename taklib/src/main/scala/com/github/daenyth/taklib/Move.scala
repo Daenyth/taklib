@@ -1,7 +1,9 @@
 package com.github.daenyth.taklib
 
 import scala.util.control.NoStackTrace
-import scalaz.Monad
+import cats.Monad
+
+import scala.annotation.tailrec
 
 
 sealed trait GameAction
@@ -66,10 +68,21 @@ object MoveResult {
     override def map[A, B](fa: MoveResult[A])(f: (A) => B): MoveResult[B] =
       fa.map(f)
 
-    override def bind[A, B](fa: MoveResult[A])(f: (A) => MoveResult[B]): MoveResult[B] =
+    override def flatMap[A, B](fa: MoveResult[A])(f: (A) => MoveResult[B]): MoveResult[B] =
       fa.flatMap(f)
 
-    override def point[A](a: => A): MoveResult[A] = OkMove(a)
+    override def pure[A](a: A): MoveResult[A] = OkMove(a)
+
+    @tailrec
+    override def tailRecM[A, B](a: A)(f: (A) => MoveResult[Either[A, B]]): MoveResult[B] =
+      f(a) match {
+        case OkMove(nextState) => nextState match {
+          case scala.Left(newA) => tailRecM(newA)(f)
+          case scala.Right(b) => OkMove(b)
+        }
+        case o: GameOver => o
+        case i: InvalidMove => i
+      }
   }
 }
 sealed trait MoveResult[+A] {

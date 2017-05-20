@@ -7,12 +7,11 @@ A scala library for the [Tak](http://cheapass.com/tak/) board game
 
 ```scala
 import com.github.daenyth.taklib._
-import scalaz.\/
 ```
 
 ```scala
-val invalid: String \/ Game = Game.fromTps("invalid")
-// invalid: scalaz.\/[String,com.github.daenyth.taklib.Game] = -\/(`[' expected but `i' found)
+val invalid: Either[String, Game] = Game.fromTps("invalid")
+// invalid: Either[String,com.github.daenyth.taklib.Game] = Left(`[' expected but `i' found)
 val game = Game.fromTps("[ 1,2,1,2,1/2,1,2,1,2/1,2,1,2,1/2,1,2,1,2/1,2,1,2,1 12 2 ]").getOrElse(throw new Exception)
 // game: com.github.daenyth.taklib.Game = com.github.daenyth.taklib.Game@78c4cfdd
 val winner = game.winner
@@ -90,7 +89,7 @@ Create a RuleSet to make new games with
 
 ```
 scala> Game.ofSize(7, DefaultRules)
-res0: scalaz.\/[String,com.github.daenyth.taklib.Game] = -\/(Bad game size: 7)
+res0: Either[String,com.github.daenyth.taklib.Game] = scala.Left(Bad game size: 7)
 
 // A new variant with a size-7 board that has 40 flatstones and 7 capstones per player!
 scala> Game.ofSize(7, new RuleSet {
@@ -98,7 +97,7 @@ scala> Game.ofSize(7, new RuleSet {
      | val expectedStoneColor = DefaultRules.expectedStoneColor
      | val stoneCounts = DefaultRules.stoneCounts + ((7, (40, 7)))
      | })
-res1: scalaz.\/[String,com.github.daenyth.taklib.Game] = \/-(com.github.daenyth.taklib.Game@517564bf)
+res1: Either[String,com.github.daenyth.taklib.Game] = scala.Right(com.github.daenyth.taklib.Game@517564bf)
 ```
 
 ## Goals
@@ -111,7 +110,7 @@ res1: scalaz.\/[String,com.github.daenyth.taklib.Game] = \/-(com.github.daenyth.
 - Not aiming to be the fastest runtime - I'm not benchmarking anything until the project is much more stable.
 - Stable API - for now. This is a new library, and so the api can change without notice as I find better ways to do things.
 - Supporting scala.js - for now. It should be possible with little effort but it's not a priority. Patches welcome
-- Cats support. Taklib will use scalaz only for the near future
+- Scalaz usage. Taklib will only support cats
 
 ## Testing
 

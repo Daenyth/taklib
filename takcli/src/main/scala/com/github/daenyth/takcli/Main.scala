@@ -18,8 +18,8 @@ object Main {
 
   def getInitialGame: Task[Game] = promptSize.flatMap {
     Game.ofSize(_) match {
-      case -\/(err) => Task.now(println(err)) *> getInitialGame
-      case \/-(game) => Task.now(game)
+      case scala.Left(err) => Task.now(println(err)) *> getInitialGame
+      case scala.Right(game) => Task.now(game)
     }
   }
 

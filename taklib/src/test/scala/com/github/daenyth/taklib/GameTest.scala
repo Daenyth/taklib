@@ -118,7 +118,7 @@ class GameTest
 
   "A long game" should "be playable without a problem" in {
     // https://www.playtak.com/games/153358/view
-    val maybeMoves: Vector[String \/ TurnAction] = Vector(
+    val maybeMoves: Vector[Either[String, TurnAction]] = Vector(
       "a6",
       "a1",
       "c3",
