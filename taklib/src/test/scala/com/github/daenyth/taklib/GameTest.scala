@@ -1,16 +1,18 @@
 package com.github.daenyth.taklib
 
+import cats.free.Free
 import com.github.daenyth.taklib.GameEndResult._
 import org.scalacheck.{Arbitrary, Gen}
-import org.scalatest.{FlatSpec, Matchers, OptionValues}
-import org.typelevel.scalatest.DisjunctionValues
+import org.scalatest._
+import cats.scalatest.EitherValues
+import cats.instances.vector._
+import cats.instances.either._
+import cats.kernel.laws.GroupLaws
+import cats.syntax.traverse._
+import org.scalatest.prop.GeneratorDrivenPropertyChecks
+import org.typelevel.discipline.scalatest.Discipline
 
-import scalaz.\/
-import scalaz.scalacheck.ScalazProperties
-import scalaz.std.vector._
-import scalaz.syntax.traverse._
-
-object GameTest {
+object GameEndResultLawsTest {
   implicit val arbRoad: Arbitrary[RoadWin] = Arbitrary { Gen.oneOf(White, Black).map(RoadWin) }
   implicit val arbFlat: Arbitrary[FlatWin] = Arbitrary { Gen.oneOf(White, Black).map(FlatWin) }
   implicit val arbGer: Arbitrary[GameEndResult] = Arbitrary {
@@ -23,18 +25,21 @@ object GameTest {
   }
 }
 
+class GameEndResultLawsTest
+    extends FunSuite
+    with Discipline
+    with Matchers
+    with GeneratorDrivenPropertyChecks {
+  import GameEndResultLawsTest._
+  checkAll("GameEndResult", GroupLaws[GameEndResult].semigroup)
+}
+
 class GameTest
     extends FlatSpec
     with Matchers
-    with PropertyCheckers
     with OptionValues
-    with DisjunctionValues
+    with EitherValues
     with MoveResultValues {
-  import GameTest._
-
-  "GameEndResult" should "be a lawful semigroup" in {
-    check(ScalazProperties.semigroup.laws[GameEndResult])
-  }
 
   "A full board" should "have a game end result" in {
     val game = Game.fromTps("1,2,1,2,1/2,1,2,1,2/1,2,1,2,1/2,1,2,1,2/1,2,1,2,1 2 13").value
@@ -61,8 +66,8 @@ class GameTest
   "Four flats and a capstone" should "have a road win" in {
     val board = Board.ofSize(5)
     val moves = (1 to 4).map(n => Black -> PlayFlat(BoardIndex(1, n))) ++ Vector(
-        Black -> PlayCapstone(BoardIndex(1, 5))
-      )
+      Black -> PlayCapstone(BoardIndex(1, 5))
+    )
     val roadBoard = board.applyActions(moves)
     val game = Game.fromBoard(roadBoard.value)
     game.winner.value shouldBe RoadWin(Black)
@@ -71,8 +76,8 @@ class GameTest
   "Four flats and a standing stone" should "not be a win" in {
     val board = Board.ofSize(5)
     val moves = (1 to 4).map(n => Black -> PlayFlat(BoardIndex(1, n))) ++ Vector(
-        Black -> PlayStanding(BoardIndex(1, 5))
-      )
+      Black -> PlayStanding(BoardIndex(1, 5))
+    )
     val roadBoard = board.applyActions(moves)
     val game = Game.fromBoard(roadBoard.value)
     game.winner shouldBe None
@@ -216,12 +221,14 @@ class GameTest
       "e3"
     ).map { PtnParser.parseEither(PtnParser.turnAction, _) }
     val actions: Vector[TurnAction] = maybeMoves.sequenceU.value
-    val game = actions.foldLeftM[MoveResult, Game](Game.ofSize(6).value) { (game, action) => game.takeTurn(action) }
+    val game = Free.foldLeftM(actions, Game.ofSize(6).value) { (game, action) =>
+      game.takeTurn(action)
+    }
     game should matchPattern { case GameOver(FlatWin(White), _) => () }
   }
 }
 
-class GamePtnTest extends FlatSpec with Matchers with DisjunctionValues {
+class GamePtnTest extends FlatSpec with Matchers with EitherValues {
 
   def roundTripPtn(g: Game): MoveResult[Game] =
     Game.fromPtn(g.toPtn).value

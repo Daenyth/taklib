@@ -3,21 +3,20 @@ package com.github.daenyth.taklib
 import com.github.daenyth.taklib.GameEndResult._
 import com.github.daenyth.taklib.PtnParser.PtnHeaders
 import org.scalatest.{FlatSpec, Matchers}
-import org.typelevel.scalatest.DisjunctionValues
+import cats.scalatest.EitherValues
 
 import scala.io.Source
-import scalaz.\/
 
 object PtnParserTest {
   def readPtn(ptnFileName: String): String =
     Source.fromResource(s"ptn/$ptnFileName.ptn").getLines.mkString("\n")
 
-  def parsePtn(ptn: String): (String \/ (PtnHeaders, MoveResult[Game])) =
+  def parsePtn(ptn: String): Either[String, (PtnHeaders, MoveResult[Game])] =
     PtnParser.parseEither(PtnParser.ptn(DefaultRules), ptn)
 
 }
 
-class PtnParserTest extends FlatSpec with Matchers with DisjunctionValues with MoveResultValues {
+class PtnParserTest extends FlatSpec with Matchers with EitherValues with MoveResultValues {
   import PtnParserTest._
 
   "BoardIndex names" should "round trip ptn parsing" in {
