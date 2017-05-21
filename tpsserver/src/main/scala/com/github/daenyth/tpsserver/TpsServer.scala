@@ -1,5 +1,8 @@
 package com.github.daenyth.tpsserver
 
+import cats.data.ValidatedNel
+import cats.syntax.either._
+import cats.syntax.cartesian._
 import com.github.daenyth.taklib.{Game, MoveResult, PtnParser}
 import fs2.Task
 import io.circe.generic.auto._
@@ -10,19 +13,16 @@ import org.http4s.circe._
 import org.http4s.dsl._
 import org.http4s.{HttpService, Response}
 
-import scalaz.ValidationNel
-import scalaz.syntax.applicative._
-
 case class TpsMove(tps: String, move: String)
 
 object TpsServer {
-  def takeTurn(move: TpsMove): ValidationNel[String, MoveResult[Game]] = {
-    val gameE = Game.fromTps(move.tps).leftMap(err => s"TPS: $err").validationNel
+  def takeTurn(move: TpsMove): ValidatedNel[String, MoveResult[Game]] = {
+    val gameE = Game.fromTps(move.tps).leftMap(err => s"TPS: $err").toValidatedNel
     val moveE = PtnParser
       .parseEither(PtnParser.turnAction, move.move)
       .leftMap(err => s"Move: $err")
-      .validationNel
-    (gameE |@| moveE) apply {
+      .toValidatedNel
+    (gameE |@| moveE) map {
       case (game, action) => game.takeTurn(action)
     }
   }
@@ -30,7 +30,7 @@ object TpsServer {
   private def runTpsMove(move: TpsMove): Task[Response] =
     takeTurn(move)
       .fold(
-        err => BadRequest(Json.obj("errors" -> err.list.toVector.asJson)),
+        err => BadRequest(Json.obj("errors" -> err.toList.toVector.asJson)),
         ok => Ok(ok.asJson)
       )
 
