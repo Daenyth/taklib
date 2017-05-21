@@ -9,7 +9,7 @@ class PlaytakCodecTest extends FlatSpec with Matchers with EitherValues {
   import Playtak.Incoming._
 
   def parse[A](parser: PlaytakCodec.Incoming.Parser[A], s: String): Either[String, A] =
-    PlaytakCodec.Incoming.parseEither(parser, s).toEither
+    PlaytakCodec.Incoming.parseEither(parser, s)
 
   "client" should "parse" in {
     parse(client, "Client Foop") shouldBe Right(Client("Foop"))

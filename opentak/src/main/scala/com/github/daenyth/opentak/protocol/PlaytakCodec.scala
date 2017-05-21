@@ -16,13 +16,13 @@ object PlaytakCodec {
   def encode(outgoing: Playtak.Outgoing): String =
     Outgoing.encode(outgoing)
   def decode(input: String): Either[String, Playtak.Incoming] =
-    Incoming.parseEither(Incoming.incoming, input).toEither
+    Incoming.parseEither(Incoming.incoming, input)
 
   /* Abandon hope all ye who scroll below here */
 
   object Incoming extends RegexParsers with RichParsing {
     def decode(input: String): Either[String, Playtak.Incoming] =
-      parseEither(incoming, input).toEither
+      parseEither(incoming, input)
 
     import Playtak.Incoming._
 
