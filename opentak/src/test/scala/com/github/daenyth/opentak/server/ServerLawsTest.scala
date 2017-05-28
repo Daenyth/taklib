@@ -43,4 +43,14 @@ abstract class ServerLaws[M[_]: Monad] {
   def addRoomIdempotent(s: Server[M], room: RoomId, user: User) =
     testIdempotent(_.addUserToRoom(user, room))
 
+  def addedUserExists(user: User)(s: Server[M]) =
+    for {
+      s1 <- s.connect(user)
+    } yield s1.users.exists { u: User => u === user }
+
+  def removedUserIsGone(user: User)(s: Server[M]) =
+    for {
+      s1 <- s.disconnect(user)
+    } yield !s1.users.exists { u: User => u === user }
+
 }

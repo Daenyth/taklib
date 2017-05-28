@@ -15,12 +15,10 @@ object Room {
 }
 
 object Server {
-  implicit def serverEq[M[_]]: Eq[Server[M]] = new Eq[Server[M]] {
-    override def eqv(x: Server[M], y: Server[M]): Boolean = ???
-  }
+  implicit def serverEq[M[_]]: Eq[Server[M]] = (x: Server[M], y: Server[M]) => ???
 }
 abstract class Server[M[_]: Monad] {
-  def users: Vector[User]
+  def users: Set[User]
 
   def games: Map[GameId, Game]
   def seeks: Map[SeekId, Seek]
