@@ -1,13 +1,11 @@
 package com.github.daenyth.opentak.protocol
 
+import com.github.daenyth.opentak.accounts.Username
 import com.github.daenyth.taklib.{BoardIndex, GameEndResult, PlayStone, Player}
 
 // See protocol description at https://github.com/chaitu236/TakServer
 object Playtak {
   case class GameNumber(value: Int) extends AnyVal
-  case class Username(value: String) extends AnyVal {
-    override def toString: String = value
-  }
   case class RoomName(value: String) extends AnyVal {
     override def toString: String = value
   }

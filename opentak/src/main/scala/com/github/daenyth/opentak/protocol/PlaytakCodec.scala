@@ -1,6 +1,7 @@
 package com.github.daenyth.opentak.protocol
 
-import com.github.daenyth.opentak.protocol.Playtak.{GameNumber, RoomName, Username}
+import com.github.daenyth.opentak.accounts.Username
+import com.github.daenyth.opentak.protocol.Playtak.{GameNumber, RoomName}
 import com.github.daenyth.taklib.Implicits.RichParsing
 import com.github.daenyth.taklib._
 

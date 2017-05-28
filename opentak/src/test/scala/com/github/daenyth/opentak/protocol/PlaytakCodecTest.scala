@@ -1,12 +1,13 @@
 package com.github.daenyth.opentak.protocol
 
-import com.github.daenyth.opentak.protocol.Playtak.{GameNumber, Username}
+import com.github.daenyth.opentak.accounts.Username
+import com.github.daenyth.opentak.protocol.Playtak.GameNumber
 import com.github.daenyth.taklib.White
 import org.scalatest.{EitherValues, FlatSpec, Matchers}
 
 class PlaytakCodecTest extends FlatSpec with Matchers with EitherValues {
-  import PlaytakCodec.Incoming._
   import Playtak.Incoming._
+  import PlaytakCodec.Incoming._
 
   def parse[A](parser: PlaytakCodec.Incoming.Parser[A], s: String): Either[String, A] =
     PlaytakCodec.Incoming.parseEither(parser, s)
