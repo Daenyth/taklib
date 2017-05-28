@@ -46,11 +46,14 @@ abstract class ServerLaws[M[_]: Monad] {
   def addedUserExists(user: User)(s: Server[M]) =
     for {
       s1 <- s.connect(user)
-    } yield s1.users.exists { u: User => u === user }
+    } yield
+      s1.users.exists { u: User =>
+        u === user
+      }
 
   def removedUserIsGone(user: User)(s: Server[M]) =
     for {
       s1 <- s.disconnect(user)
-    } yield !s1.users.exists { u: User => u === user }
+    } yield !s1.users.exists(_ === user) && !s1.rooms.values.exists(_.users.contains(user))
 
 }
