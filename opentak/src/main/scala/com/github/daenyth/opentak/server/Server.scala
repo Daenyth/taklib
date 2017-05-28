@@ -1,18 +1,13 @@
 package com.github.daenyth.opentak.server
 
 import cats.{Eq, Monad}
-import com.github.daenyth.opentak.ID
 import com.github.daenyth.opentak.accounts.User
-import com.github.daenyth.opentak.game.{Game, Seek}
 import com.github.daenyth.opentak.game.Game.{GameId, SeekId}
+import com.github.daenyth.opentak.game.{Game, Seek}
 import com.github.daenyth.opentak.server.Room.RoomId
 
 import scala.language.higherKinds
 
-class Room
-object Room {
-  type RoomId = ID[Room]
-}
 
 object Server {
   implicit def serverEq[M[_]]: Eq[Server[M]] = (x: Server[M], y: Server[M]) => ???
