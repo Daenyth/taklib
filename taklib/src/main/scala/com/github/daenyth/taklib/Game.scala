@@ -7,21 +7,21 @@ import com.github.daenyth.taklib.RuleSet.GameRule
 import scala.annotation.tailrec
 import scalax.collection.GraphEdge.UnDiEdge
 import scalax.collection.immutable.Graph
-import scalaz.Ordering.{EQ, GT, LT}
-import scalaz.std.anyVal.intInstance
-import scalaz.std.option._
-import scalaz.std.vector._
-import scalaz.syntax.either._
-import scalaz.syntax.foldable._
-import scalaz.syntax.order._
-import scalaz.syntax.semigroup._
-import scalaz.{Equal, NonEmptyList, Semigroup, \/}
+import cats.instances.int._
+import cats.instances.option._
+import cats.syntax.either._
+import cats.syntax.order._
+import cats.syntax.list._
+import cats.syntax.semigroup._
+import cats.{Semigroup, Eq => Equal}
+import cats.data.NonEmptyList
+import cats.kernel.Comparison.{EqualTo, GreaterThan, LessThan}
 
 sealed trait GameEndResult
 object GameEndResult {
   implicit val gerInstance: Semigroup[GameEndResult] with Equal[GameEndResult] =
     new Semigroup[GameEndResult] with Equal[GameEndResult] {
-      override def append(f1: GameEndResult, f2: => GameEndResult) = (f1, f2) match {
+      override def combine(f1: GameEndResult, f2: GameEndResult): GameEndResult = (f1, f2) match {
         case (DoubleRoad, _) => DoubleRoad
         case (_, DoubleRoad) => DoubleRoad
         case (Draw, r: RoadWin) => r
@@ -36,7 +36,7 @@ object GameEndResult {
         case (_, w: WinByResignation) => w
       }
 
-      override def equal(a1: GameEndResult, a2: GameEndResult): Boolean = (a1, a2) match {
+      override def eqv(a1: GameEndResult, a2: GameEndResult): Boolean = (a1, a2) match {
         case (DoubleRoad, DoubleRoad) => true
         case (Draw, Draw) => true
         case (RoadWin(p1), RoadWin(p2)) => p1 == p2
@@ -151,15 +151,15 @@ object DefaultRules extends RuleSet {
 
 object Game {
 
-  def ofSize(size: Int): String \/ Game = ofSize(size, DefaultRules)
+  def ofSize(size: Int): Either[String, Game] = ofSize(size, DefaultRules)
 
-  def ofSize(size: Int, rules: RuleSet): String \/ Game =
+  def ofSize(size: Int, rules: RuleSet): Either[String, Game] =
     rules.stoneCounts.keySet
       .contains(size)
       .guard(s"Bad game size: $size")
       .map { _ =>
         val b = Board.ofSize(size)
-        new Game(size, 1, rules, NonEmptyList((StartGameWithBoard(b), b)))
+        new Game(size, 1, rules, NonEmptyList((StartGameWithBoard(b), b), Nil))
       }
 
   // Start at turn 3 to make the "play opponent's stone" rule easier
@@ -168,19 +168,19 @@ object Game {
       board.size,
       turnNumber,
       DefaultRules,
-      NonEmptyList((StartGameWithBoard(board), board))
+      NonEmptyList((StartGameWithBoard(board), board), Nil)
     )
 
-  def fromPtn(ptn: String): String \/ MoveResult[Game] =
+  def fromPtn(ptn: String): Either[String, MoveResult[Game]] =
     PtnParser.parseEither(PtnParser.ptn(DefaultRules), ptn).map(_._2)
 
-  def fromTps(tps: String): String \/ Game =
+  def fromTps(tps: String): Either[String, Game] =
     TpsParser.parse(TpsParser.tps, tps) match {
       case TpsParser.Success((board, turn, nextPlayer), _) =>
         // We use one turn for each player's action, Tps uses turn as a move for both players with a move counter between them
         val turnNumber = (2 * turn) + nextPlayer.fold(1, 0)
-        Game.fromBoard(board, turnNumber).right
-      case err: TpsParser.NoSuccess => err.msg.left
+        Game.fromBoard(board, turnNumber).asRight
+      case err: TpsParser.NoSuccess => err.msg.asLeft
     }
 
 }
@@ -208,7 +208,7 @@ class Game private (val size: Int,
   def takeTurn(action: TurnAction): MoveResult[Game] =
     rules.check(this, action).getOrElse {
         currentBoard.applyAction(nextPlayer, action).flatMap { nextState =>
-          val newHistory = (action, nextState) <:: history
+          val newHistory = (action, nextState) :: history
           val game = new Game(size, turnNumber + 1, rules, newHistory)
           game.winner match {
             case Some(gameEnd) => GameOver(gameEnd, game)
@@ -235,7 +235,7 @@ class Game private (val size: Int,
   }
 
   def winner: Option[GameEndResult] =
-    (roads: Vector[GameEndResult]).suml1Opt |+| flatWin
+    Semigroup[GameEndResult].combineAllOption(roads) |+| flatWin
 
   private def roads: Vector[RoadWin] = {
     def mkGraph(xs: Set[BoardIndex]): Graph[BoardIndex, UnDiEdge] = {
@@ -297,10 +297,10 @@ class Game private (val size: Int,
           if (!emptySpaceAvailable
               || whiteCount == reserve
               || blackCount == reserve) {
-            Some(whiteFlats cmp blackFlats match {
-              case LT => FlatWin(Black)
-              case EQ => Draw
-              case GT => FlatWin(White)
+            Some(whiteFlats comparison blackFlats match {
+              case LessThan => FlatWin(Black)
+              case EqualTo => Draw
+              case GreaterThan => FlatWin(White)
             })
           } else None
         case stack :: rest =>

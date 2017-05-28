@@ -41,24 +41,23 @@ scalacOptions in (opentak, Compile, console) ~= (_.filterNot(Set("-Xfatal-warnin
 
 resolvers += Resolver.sonatypeRepo("releases")
 
-val scalazVersion = "7.2.8"
+val catsVersion = "0.9.0"
 val parserCombinators = "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.5"
 val dependencies = Seq(
-  "org.scalaz" %% "scalaz-core" % scalazVersion,
+  "org.typelevel" %% "cats" % catsVersion,
   parserCombinators,
   "org.scala-graph" %% "graph-core" % "1.11.4"
 )
 val testDependencies = Seq(
   "org.scalatest" %% "scalatest" % "3.0.1" % "test",
   "org.scalacheck" %% "scalacheck" % "1.13.4" % "test",
-  "org.typelevel" %% "scalaz-scalatest" % "1.1.1" % "test",
-  "org.scalaz" %% "scalaz-scalacheck-binding" % scalazVersion % "test"
+  "com.ironcorelabs" %% "cats-scalatest" % "2.2.0" % "test"
 )
 
 libraryDependencies in taklib ++= dependencies
 libraryDependencies in taklib ++= testDependencies
 libraryDependencies in takcli ++= Seq(
-  "org.scalaz" %% "scalaz-concurrent" % scalazVersion
+  "org.typelevel" %% "cats-effect" % "0.2"
 )
 
 resolvers in tpsserver += Resolver.sonatypeRepo("snapshots")

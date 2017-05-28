@@ -1,46 +1,49 @@
 package com.github.daenyth.takcli
 
+import cats.effect.IO
 import com.github.daenyth.taklib._
 
 import scala.io.StdIn
 import scala.util.control.NoStackTrace
-import scalaz.concurrent.Task
-import scalaz.syntax.monad._
-import scalaz.{-\/, \/-}
+import cats.syntax.flatMap._
+import cats.syntax.applicativeError._
 
 object Main {
+
   def main(args: Array[String]): Unit =
-    mainT.handleWith {
-      case CleanExit => Task.now(println("Exiting"))
-    }.unsafePerformSync
+    mainT
+      .recoverWith {
+        case CleanExit => IO(println("Exiting"))
+      }
+      .unsafeRunSync()
 
-  def mainT: Task[Unit] = printStartup *> getInitialGame >>= runGameLoop
+  def mainT: IO[Unit] = printStartup >> getInitialGame >>= runGameLoop
 
-  def getInitialGame: Task[Game] = promptSize.flatMap {
+  def getInitialGame: IO[Game] = promptSize.flatMap {
     Game.ofSize(_) match {
-      case -\/(err) => Task.now(println(err)) *> getInitialGame
-      case \/-(game) => Task.now(game)
+      case scala.Left(err) => IO(println(err)) >> getInitialGame
+      case scala.Right(game) => IO(game)
     }
   }
 
-  def runGameLoop(g: Game): Task[Unit] = runGameTurn(g).flatMap {
+  def runGameLoop(g: Game): IO[Unit] = runGameTurn(g).flatMap {
     case OkMove(nextState) =>
       runGameLoop(nextState)
     case InvalidMove(reason) =>
-      Task.now(println(s"Bad move: $reason")) *> runGameLoop(g)
+      IO(println(s"Bad move: $reason")) >> runGameLoop(g)
     case GameOver(result, finalState) =>
-      printGame(finalState) *> endGame(result)
+      printGame(finalState) >> endGame(result)
   }
 
-  def endGame(end: GameEndResult): Task[Unit] = Task {
+  def endGame(end: GameEndResult): IO[Unit] = IO {
     println("Game over!")
     println(end)
   }
 
-  def runGameTurn(g: Game): Task[MoveResult[Game]] =
-    printGame(g) *> promptAction.map(g.takeTurn)
+  def runGameTurn(g: Game): IO[MoveResult[Game]] =
+    printGame(g) >> promptAction.map(g.takeTurn)
 
-  def printGame(g: Game) = Task {
+  def printGame(g: Game) = IO {
     val nextPlayInfo = g.turnNumber match {
       case 1 => "White to play (Black stone)"
       case 2 => "Black to play (White stone)"
@@ -52,35 +55,36 @@ object Main {
     println()
   }
 
-  def printStartup = Task {
-    println("TakCLI")
-  }
+  def printStartup = IO(println("TakCLI"))
 
-  def promptSize: Task[Int] =
-    Task {
+  def promptSize: IO[Int] =
+    IO {
       print("Game size?\n  > ")
       StdIn.readInt()
-    }.handleWith {
-      case n: NumberFormatException => Task(println(s"Bad size: $n")) *> promptSize
+    }.recoverWith {
+      case n: NumberFormatException => IO(println(s"Bad size: $n")) >> promptSize
     }
 
-  def pretty(g: Game): String = {
-    g.currentBoard.boardPositions.map(_.reverse).transpose.map(_.map(_.toTps).mkString("\t")).mkString("\n")
-  }
+  def pretty(g: Game): String =
+    g.currentBoard.boardPositions
+      .map(_.reverse)
+      .transpose
+      .map(_.map(_.toTps).mkString("\t"))
+      .mkString("\n")
 
-  def promptAction: Task[TurnAction] =
-    Task(StdIn.readLine("Your Move?\n  > "))
+  def promptAction: IO[TurnAction] =
+    IO(StdIn.readLine("Your Move?\n  > "))
       .flatMap { input =>
         if (input == null) { throw CleanExit } else
           PtnParser
             .parseEither(PtnParser.turnAction, input)
             .fold(
-              err => Task.fail(PtnParseError(err)),
-              Task.now
+              err => IO.raiseError(PtnParseError(err)),
+              ta => IO.pure(ta)
             )
       }
-      .handleWith {
-        case PtnParseError(err) => Task(println(s"Bad move: $err")) *> promptAction
+      .recoverWith {
+        case PtnParseError(err) => IO(println(s"Bad move: $err")) >> promptAction
       }
 }
 

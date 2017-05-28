@@ -6,7 +6,6 @@ import com.github.daenyth.taklib.Stone._
 import scala.annotation.tailrec
 import scala.util.Try
 import scala.util.parsing.combinator.RegexParsers
-import scalaz.{-\/, \/-}
 
 object TpsParser extends RegexParsers with RichParsing {
   override val skipWhitespace = false
@@ -50,14 +49,14 @@ object TpsParser extends RegexParsers with RichParsing {
         val ranksize = pieces.size
 
         if (! (for (file <- pieces) yield file.size).forall(_ == ranksize)) {
-          -\/("Board size is not square")
+          scala.Left("Board size is not square")
         } else {
 
           val player = np match {
             case "1" => White
             case "2" => Black
           }
-          \/-((Board(ranksize, pieces), t.toInt, player))
+          scala.Right((Board(ranksize, pieces), t.toInt, player))
         }
     }
   }
