@@ -5,23 +5,24 @@ import com.github.daenyth.taklib._
 
 import scala.io.StdIn
 import scala.util.control.NoStackTrace
-import cats.syntax.flatMap._
-import cats.syntax.applicativeError._
+import cats.syntax.all._
+import cats.effect.IOApp
+import cats.effect.ExitCode
 
-object Main {
+object Main extends IOApp {
 
-  def main(args: Array[String]): Unit =
+  def run(args: List[String]): IO[ExitCode] =
     mainT
-      .recoverWith {
-        case CleanExit => IO(println("Exiting"))
+      .recoverWith { case CleanExit =>
+        IO.println("Exiting")
       }
-      .unsafeRunSync()
+      .as(ExitCode.Success)
 
   def mainT: IO[Unit] = printStartup >> getInitialGame >>= runGameLoop
 
   def getInitialGame: IO[Game] = promptSize.flatMap {
     Game.ofSize(_) match {
-      case scala.Left(err) => IO(println(err)) >> getInitialGame
+      case scala.Left(err)   => IO(println(err)) >> getInitialGame
       case scala.Right(game) => IO(game)
     }
   }
@@ -45,10 +46,10 @@ object Main {
 
   def printGame(g: Game) = IO {
     val nextPlayInfo = g.turnNumber match {
-      case 1 => "White to play (Black stone)"
-      case 2 => "Black to play (White stone)"
+      case 1               => "White to play (Black stone)"
+      case 2               => "Black to play (White stone)"
       case n if n % 2 == 0 => "Black to play"
-      case _ => "White to play"
+      case _               => "White to play"
     }
     println(s"Move ${g.turnNumber} - $nextPlayInfo")
     print(pretty(g))
@@ -61,8 +62,8 @@ object Main {
     IO {
       print("Game size?\n  > ")
       StdIn.readInt()
-    }.recoverWith {
-      case n: NumberFormatException => IO(println(s"Bad size: $n")) >> promptSize
+    }.recoverWith { case n: NumberFormatException =>
+      IO(println(s"Bad size: $n")) >> promptSize
     }
 
   def pretty(g: Game): String =
@@ -75,7 +76,8 @@ object Main {
   def promptAction: IO[TurnAction] =
     IO(StdIn.readLine("Your Move?\n  > "))
       .flatMap { input =>
-        if (input == null) { throw CleanExit } else
+        if (input == null) { throw CleanExit }
+        else
           PtnParser
             .parseEither(PtnParser.turnAction, input)
             .fold(
@@ -83,8 +85,8 @@ object Main {
               ta => IO.pure(ta)
             )
       }
-      .recoverWith {
-        case PtnParseError(err) => IO(println(s"Bad move: $err")) >> promptAction
+      .recoverWith { case PtnParseError(err) =>
+        IO(println(s"Bad move: $err")) >> promptAction
       }
 }
 

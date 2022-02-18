@@ -1,20 +1,20 @@
 package com.github.daenyth.taklib
 
-import cats.free.Free
 import com.github.daenyth.taklib.GameEndResult._
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalatest._
 import cats.scalatest.EitherValues
-import cats.instances.vector._
-import cats.instances.either._
-import cats.kernel.laws.GroupLaws
-import cats.syntax.traverse._
-import org.scalatest.prop.GeneratorDrivenPropertyChecks
-import org.typelevel.discipline.scalatest.Discipline
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
+import cats.syntax.all._
+import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
+import cats.kernel.laws.discipline.SemigroupTests
+import org.typelevel.discipline.scalatest.FunSuiteDiscipline
 
 object GameEndResultLawsTest {
-  implicit val arbRoad: Arbitrary[RoadWin] = Arbitrary { Gen.oneOf(White, Black).map(RoadWin) }
-  implicit val arbFlat: Arbitrary[FlatWin] = Arbitrary { Gen.oneOf(White, Black).map(FlatWin) }
+  implicit val arbRoad: Arbitrary[RoadWin] = Arbitrary(Gen.oneOf(White, Black).map(RoadWin))
+  implicit val arbFlat: Arbitrary[FlatWin] = Arbitrary(Gen.oneOf(White, Black).map(FlatWin))
   implicit val arbGer: Arbitrary[GameEndResult] = Arbitrary {
     Gen.oneOf(
       Gen.const(DoubleRoad),
@@ -26,16 +26,16 @@ object GameEndResultLawsTest {
 }
 
 class GameEndResultLawsTest
-    extends FunSuite
-    with Discipline
+    extends AnyFunSuite
+    with FunSuiteDiscipline
     with Matchers
-    with GeneratorDrivenPropertyChecks {
+    with ScalaCheckDrivenPropertyChecks {
   import GameEndResultLawsTest._
-  checkAll("GameEndResult", GroupLaws[GameEndResult].semigroup)
+  checkAll("GameEndResult", SemigroupTests[GameEndResult].semigroup)
 }
 
 class GameTest
-    extends FlatSpec
+    extends AnyFlatSpec
     with Matchers
     with OptionValues
     with EitherValues
@@ -94,7 +94,8 @@ class GameTest
     val i = BoardIndex(1, 1)
     val board = Board.ofSize(5).applyAction(Black, PlayFlat(i)).value
     val game = Game.fromBoard(board)
-    DefaultRules.actingPlayerControlsStack(game, Move(i, Right, None, None)) shouldBe 'nonEmpty
+    DefaultRules.actingPlayerControlsStack(game, Move(i, Right, None, None)) shouldBe
+      Symbol("nonEmpty")
   }
 
   "The first move" should "be taken with a black flatstone" in {
@@ -219,16 +220,16 @@ class GameTest
       "e4",
       "5c1>14",
       "e3"
-    ).map { PtnParser.parseEither(PtnParser.turnAction, _) }
-    val actions: Vector[TurnAction] = maybeMoves.sequenceU.value
-    val game = Free.foldLeftM(actions, Game.ofSize(6).value) { (game, action) =>
+    ).map(PtnParser.parseEither(PtnParser.turnAction, _))
+    val actions: Vector[TurnAction] = maybeMoves.sequence.value
+    val game = actions.foldLeftM(Game.ofSize(6).value) { (game, action) =>
       game.takeTurn(action)
     }
     game should matchPattern { case GameOver(FlatWin(White), _) => () }
   }
 }
 
-class GamePtnTest extends FlatSpec with Matchers with EitherValues {
+class GamePtnTest extends AnyFlatSpec with Matchers with EitherValues {
 
   def roundTripPtn(g: Game): MoveResult[Game] =
     Game.fromPtn(g.toPtn).value

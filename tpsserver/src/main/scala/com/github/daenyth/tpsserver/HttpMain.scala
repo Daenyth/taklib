@@ -1,13 +1,14 @@
 package com.github.daenyth.tpsserver
 
-import fs2.{Stream, Task}
-import org.http4s.server.blaze.BlazeBuilder
-import org.http4s.util.StreamApp
+import org.http4s.blaze.server.BlazeServerBuilder
+import cats.effect.IOApp
+import cats.effect.IO
 
-object HttpMain extends StreamApp {
-  override def main(args: List[String]): Stream[Task, Nothing] =
-    BlazeBuilder
+object HttpMain extends IOApp.Simple {
+  override def run: IO[Unit] =
+    BlazeServerBuilder[IO]
       .bindHttp(8080, "localhost")
-      .mountService(TpsServer.tpsService, "/")
-      .serve
+      .withHttpApp(TpsServer.tpsService.orNotFound)
+      .resource
+      .useForever
 }

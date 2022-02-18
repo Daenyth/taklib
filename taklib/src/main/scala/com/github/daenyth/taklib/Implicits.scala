@@ -1,7 +1,7 @@
 package com.github.daenyth.taklib
 
 import scala.util.parsing.combinator.RegexParsers
-import cats.syntax.either._
+import cats.syntax.all._
 
 object Implicits {
   implicit class RichBoolean(b: Boolean) {
