@@ -1,9 +1,10 @@
 package com.github.daenyth.taklib
 
 import com.github.daenyth.taklib.Stone._
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class MoveTest extends FlatSpec with Matchers with MoveResultValues {
+class MoveTest extends AnyFlatSpec with Matchers with MoveResultValues {
 
   "Moving to capture" should "make a stack" in {
     val board = Board.ofSize(5)

@@ -6,9 +6,7 @@ import com.github.daenyth.taklib.Stone._
 
 import scala.annotation.tailrec
 import scala.collection.immutable.IndexedSeq
-import cats.syntax.either._
-import cats.syntax.monoid._
-import cats.instances.vector._
+import cats.syntax.all._
 import cats.{Eq => Equal}
 
 import scala.util.Try

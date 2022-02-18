@@ -5,31 +5,30 @@ import cats.Monad
 
 import scala.annotation.tailrec
 
-
 sealed trait GameAction
 case class StartGameWithBoard(board: Board) extends GameAction
 sealed trait TurnAction extends GameAction {
   def ptn: String = this match {
-    case PlayFlat(at) => at.name
-    case PlayStanding(at) => s"S${at.name}"
-    case PlayCapstone(at) => s"C${at.name}"
+    case PlayFlat(at)                        => at.name
+    case PlayStanding(at)                    => s"S${at.name}"
+    case PlayCapstone(at)                    => s"C${at.name}"
     case Move(from, direction, count, drops) =>
       // Omit count+drops if moving whole stack or one piece
       val num =
         drops match {
           case Some(ds) if ds.length > 1 => count.map(_.toString).getOrElse("")
-          case _ => ""
+          case _                         => ""
         }
       val dropSequence =
         drops match {
           case Some(ds) if ds.length > 1 => ds.mkString("")
-          case _ => ""
+          case _                         => ""
         }
       s"$num${from.name}${direction.name}$dropSequence"
   }
 }
 object PlayStone {
-  def unapply(p: PlayStone): Option[(BoardIndex, Player => Stone)] =
+  def unapply(p: PlayStone): Some[(BoardIndex, Player => Stone)] =
     Some((p.at, p.stone))
 }
 sealed trait PlayStone extends TurnAction {
@@ -45,22 +44,22 @@ case class PlayStanding(at: BoardIndex) extends PlayStone {
 case class PlayCapstone(at: BoardIndex) extends PlayStone {
   val stone = Stone.Capstone.apply _
 }
-case class Move(from: BoardIndex,
-                direction: MoveDirection,
-                count: Option[Int],
-                drops: Option[Vector[Int]])
-  extends TurnAction {
+case class Move(
+    from: BoardIndex,
+    direction: MoveDirection,
+    count: Option[Int],
+    drops: Option[Vector[Int]]
+) extends TurnAction {
   def finalPosition: BoardIndex = {
     val moveDistance = drops.map(_.length).getOrElse(1)
     direction match {
-      case Left => from.copy(file = from.file - moveDistance)
+      case Left  => from.copy(file = from.file - moveDistance)
       case Right => from.copy(file = from.file + moveDistance)
-      case Up => from.copy(rank = from.rank + moveDistance)
-      case Down => from.copy(rank = from.rank - moveDistance)
+      case Up    => from.copy(rank = from.rank + moveDistance)
+      case Down  => from.copy(rank = from.rank - moveDistance)
     }
   }
 }
-
 
 object MoveResult {
   implicit val moveResultInstance: Monad[MoveResult] = new Monad[MoveResult] {
@@ -76,11 +75,12 @@ object MoveResult {
     @tailrec
     override def tailRecM[A, B](a: A)(f: (A) => MoveResult[Either[A, B]]): MoveResult[B] =
       f(a) match {
-        case OkMove(nextState) => nextState match {
-          case scala.Left(newA) => tailRecM(newA)(f)
-          case scala.Right(b) => OkMove(b)
-        }
-        case o: GameOver => o
+        case OkMove(nextState) =>
+          nextState match {
+            case scala.Left(newA) => tailRecM(newA)(f)
+            case scala.Right(b)   => OkMove(b)
+          }
+        case o: GameOver    => o
         case i: InvalidMove => i
       }
   }
@@ -88,30 +88,28 @@ object MoveResult {
 sealed trait MoveResult[+A] {
   def map[B](f: A => B): MoveResult[B] = this match {
     case OkMove(nextState) => OkMove(f(nextState))
-    case o: GameOver => o
-    case i: InvalidMove => i
+    case o: GameOver       => o
+    case i: InvalidMove    => i
   }
 
   def flatMap[B](f: A => MoveResult[B]): MoveResult[B] = this match {
     case OkMove(nextState) => f(nextState)
-    case o: GameOver => o
-    case i: InvalidMove => i
+    case o: GameOver       => o
+    case i: InvalidMove    => i
   }
 
   def noteInvalid(t: TurnAction): MoveResult[A] = noteInvalid(r => s"(${t.ptn}) $r")
   def noteInvalid(addNote: String => String): MoveResult[A] = this match {
     case InvalidMove(reason) => InvalidMove(addNote(reason))
-    case other => other
+    case other               => other
   }
 }
 case class OkMove[A](nextState: A) extends MoveResult[A]
 case class GameOver(result: GameEndResult, finalState: Game) extends MoveResult[Nothing]
 case class InvalidMove(reason: String)
-  extends Exception(reason)
+    extends Exception(reason)
     with MoveResult[Nothing]
     with NoStackTrace
-
-
 
 sealed trait MoveDirection { def name: String }
 case object Left extends MoveDirection { val name = "<" }

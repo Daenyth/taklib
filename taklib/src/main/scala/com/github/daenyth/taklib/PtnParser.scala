@@ -1,13 +1,13 @@
 package com.github.daenyth.taklib
 
-import cats.free.Free
 import com.github.daenyth.taklib.GameEndResult._
 import com.github.daenyth.taklib.Implicits.RichParsing
 
 import scala.collection.immutable.VectorBuilder
 import scala.util.parsing.combinator.RegexParsers
-import cats.syntax.either._
-import cats.instances.vector._
+import cats.syntax.all._
+
+import annotation.nowarn
 
 import scala.util.Try
 
@@ -23,8 +23,12 @@ object PtnParser extends RegexParsers with RichParsing {
     BoardIndex(rank, file)
   }
   val playFlat: Parser[PlayFlat] = boardIndex ^^ { idx => PlayFlat(idx) }
-  val playStanding: Parser[PlayStanding] = "S".r ~ boardIndex ^^ { case _ ~ idx => PlayStanding(idx) }
-  val playCapstone: Parser[PlayCapstone] = "C".r ~ boardIndex ^^ { case _ ~ idx => PlayCapstone(idx) }
+  val playStanding: Parser[PlayStanding] = "S".r ~ boardIndex ^^ { case _ ~ idx =>
+    PlayStanding(idx)
+  }
+  val playCapstone: Parser[PlayCapstone] = "C".r ~ boardIndex ^^ { case _ ~ idx =>
+    PlayCapstone(idx)
+  }
   val playStone: Parser[PlayStone] = playFlat | playStanding | playCapstone
 
   val moveDirection: Parser[MoveDirection] = "[-+<>]".r ^^ {
@@ -39,17 +43,17 @@ object PtnParser extends RegexParsers with RichParsing {
     val drops = "[12345678]+".r ^^ { _.toVector.map(_.toString.toInt) }
     (count.? ~ boardIndex ~ moveDirection ~ drops.?) ^^ {
       case (count: Option[Int]) ~
-            (idx: BoardIndex) ~
-            (direction: MoveDirection) ~
-            (drops: Option[Vector[Int]]) =>
-          Move(idx, direction, count, drops)
+          (idx: BoardIndex) ~
+          (direction: MoveDirection) ~
+          (drops: Option[Vector[Int]]) =>
+        Move(idx, direction, count, drops)
     }
   }
 
   val infoMark: Parser[String] = "'{1,2}".r | "[!?]{1,2}".r
 
-  val turnAction: Parser[TurnAction] = (moveStones | playStone) ~ infoMark.? ^^ {
-    case action ~ _ => action
+  val turnAction: Parser[TurnAction] = (moveStones | playStone) ~ infoMark.? ^^ { case action ~ _ =>
+    action
   }
 
   val headerLine: Parser[(String, String)] = "[" ~ """\S+""".r ~ "\".*\"".r ~ "]" ^^ {
@@ -63,39 +67,39 @@ object PtnParser extends RegexParsers with RichParsing {
 
   val fullTurnLine: Parser[(Int, TurnAction, TurnAction)] =
     """\d+\.""".r ~ turnAction ~ turnAction ~ comment.? ^^ {
-      case turnNumber ~ whiteAction ~ blackAction ~ _comment =>
+      case turnNumber ~ whiteAction ~ blackAction ~ _ =>
         (turnNumber.dropRight(1).toInt, whiteAction, blackAction)
     }
 
   val lastTurnLine: Parser[(Int, TurnAction, Option[TurnAction])] =
     """\d+\.""".r ~ turnAction ~ turnAction.? ~ comment.? ^^ {
-      case turnNumber ~ whiteAction ~ blackAction ~ _comment =>
+      case turnNumber ~ whiteAction ~ blackAction ~ _ =>
         (turnNumber.dropRight(1).toInt, whiteAction, blackAction)
     }
 
   def gameHistory(startingTurn: Int, skipFirst: Boolean): Parser[Vector[TurnAction]] =
-    rep(fullTurnLine) ~ lastTurnLine.? ^^? {
-      case fullturns ~ lastTurn =>
-        var nextTurnNumber = startingTurn
-        val iter = fullturns.iterator
-        val history = new VectorBuilder[TurnAction]
-        Either.fromTry {Try {
-          while (iter.hasNext) {
-            val (turnNumber, whiteAction, blackAction) = iter.next()
-            require(
-              turnNumber == nextTurnNumber,
-              s"Turn numbers out of order; expected $nextTurnNumber, got $turnNumber"
-            )
-            nextTurnNumber += 1
-            if (skipFirst && startingTurn == turnNumber) {
-              // do nothing
-            } else {
-              history += whiteAction
+    rep(fullTurnLine) ~ lastTurnLine.? ^^? { case fullturns ~ lastTurn =>
+      var nextTurnNumber = startingTurn
+      val iter = fullturns.iterator
+      val history = new VectorBuilder[TurnAction]
+      Either
+        .fromTry {
+          Try {
+            while (iter.hasNext) {
+              val (turnNumber, whiteAction, blackAction) = iter.next()
+              require(
+                turnNumber == nextTurnNumber,
+                s"Turn numbers out of order; expected $nextTurnNumber, got $turnNumber"
+              )
+              nextTurnNumber += 1
+              if (skipFirst && startingTurn == turnNumber) {
+                // do nothing
+              } else {
+                history += whiteAction
+              }
+              history += blackAction
             }
-            history += blackAction
-          }
-          lastTurn.foreach {
-            case (turnNumber, whiteAction, blackAction) =>
+            lastTurn.foreach { case (turnNumber, whiteAction, blackAction) =>
               require(
                 turnNumber == nextTurnNumber,
                 s"Turn numbers out of order; expected $nextTurnNumber, got $turnNumber"
@@ -106,10 +110,11 @@ object PtnParser extends RegexParsers with RichParsing {
                 history += whiteAction
               }
               blackAction.foreach(history += _)
+            }
+            history.result()
           }
-          history.result()
         }
-    }.leftMap(_.getMessage)
+        .leftMap(_.getMessage)
     }
 
   val roadWin: Parser[RoadWin] = "R-0" ^^ { _ =>
@@ -137,25 +142,27 @@ object PtnParser extends RegexParsers with RichParsing {
       case None =>
         scala.Right(gameHistoryFromTurn(ruleSet, gameHeaders, 1, skipFirst = false, Game.ofSize))
       case Some(tps) =>
-        TpsParser.parseEither(TpsParser.tps, tps).flatMap {
-          case (board, turnNumber, nextPlayer) =>
-            def getGame(size: Int, ruleSet: RuleSet): Either[String, Game] = {
-              val gameTurnNumber = (2 * turnNumber) + nextPlayer.fold(1, 0)
-              val game = Game.fromBoard(board, gameTurnNumber)
-              if (game.size != size)
-                scala.Left(s"Game headers declared size $size but TPS contained size ${game.size}")
-              else scala.Right(game)
-            }
+        TpsParser.parseEither(TpsParser.tps, tps).flatMap { case (board, turnNumber, nextPlayer) =>
+          def getGame(
+              size: Int,
+              @nowarn("msg=never used") ruleSet: RuleSet
+          ): Either[String, Game] = {
+            val gameTurnNumber = (2 * turnNumber) + nextPlayer.fold(1, 0)
+            val game = Game.fromBoard(board, gameTurnNumber)
+            if (game.size != size)
+              scala.Left(s"Game headers declared size $size but TPS contained size ${game.size}")
+            else scala.Right(game)
+          }
 
-            scala.Right(
-              gameHistoryFromTurn(
-                ruleSet,
-                gameHeaders,
-                turnNumber,
-                skipFirst = nextPlayer == Black,
-                getGame
-              )
+          scala.Right(
+            gameHistoryFromTurn(
+              ruleSet,
+              gameHeaders,
+              turnNumber,
+              skipFirst = nextPlayer == Black,
+              getGame
             )
+          )
         }
     }
   }
@@ -169,14 +176,14 @@ object PtnParser extends RegexParsers with RichParsing {
   ): Parser[(PtnHeaders, MoveResult[Game])] =
     gameHistory(startingTurn, skipFirst) ^^? { history =>
       for {
-        size <- Either.fromTry(Try(gameHeaders("Size").toInt))
+        size <- Either
+          .fromTry(Try(gameHeaders("Size").toInt))
           .leftMap(ex => s"Unable to parse game size from header ${ex.getMessage}")
         initialGame <- getInitialGame(size, ruleSet)
       } yield {
         val finalGame =
-          Free.foldLeftM(history.zipWithIndex, initialGame) {
-            case (game, (action, actionIdx)) =>
-              game.takeTurn(action).noteInvalid(r => s"(Move #${actionIdx + 1}) $r")
+          history.zipWithIndex.foldLeftM(initialGame) { case (game, (action, actionIdx)) =>
+            game.takeTurn(action).noteInvalid(r => s"(Move #${actionIdx + 1}) $r")
           }
         (gameHeaders, finalGame)
       }

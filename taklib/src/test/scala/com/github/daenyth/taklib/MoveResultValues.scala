@@ -1,7 +1,5 @@
 package com.github.daenyth.taklib
 
-import scala.language.implicitConversions
-
 import org.scalactic.source
 import org.scalatest.exceptions.{StackDepthException, TestFailedException}
 
@@ -13,9 +11,17 @@ trait MoveResultValues {
     def value: A = m match {
       case OkMove(ok) => ok
       case o: GameOver =>
-        throw new TestFailedException((_: StackDepthException) => Some(s"Got $o, expected OkMove."), None, pos)
+        throw new TestFailedException(
+          (_: StackDepthException) => Some(s"Got $o, expected OkMove."),
+          None,
+          pos
+        )
       case i: InvalidMove =>
-        throw new TestFailedException((_: StackDepthException) => Some(s"Got $i, expected OkMove."), None, pos)
+        throw new TestFailedException(
+          (_: StackDepthException) => Some(s"Got $i, expected OkMove."),
+          None,
+          pos
+        )
     }
   }
 }

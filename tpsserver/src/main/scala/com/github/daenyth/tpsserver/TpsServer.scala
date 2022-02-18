@@ -1,17 +1,19 @@
 package com.github.daenyth.tpsserver
 
 import cats.data.ValidatedNel
-import cats.syntax.either._
-import cats.syntax.cartesian._
+import cats.syntax.all._
 import com.github.daenyth.taklib.{Game, MoveResult, PtnParser}
-import fs2.Task
-import io.circe.generic.auto._
-import io.circe.generic.semiauto.deriveEncoder
+import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.syntax._
 import io.circe.{Encoder, Json}
 import org.http4s.circe._
-import org.http4s.dsl._
-import org.http4s.{HttpService, Response}
+import org.http4s.dsl.io._
+import org.http4s._
+import cats.effect.IO
+import org.http4s.circe.CirceEntityEncoder._
+import org.http4s.circe.CirceEntityDecoder._
+import io.circe.Decoder
+import scala.annotation.nowarn
 
 case class TpsMove(tps: String, move: String)
 
@@ -22,23 +24,25 @@ object TpsServer {
       .parseEither(PtnParser.turnAction, move.move)
       .leftMap(err => s"Move: $err")
       .toValidatedNel
-    (gameE |@| moveE) map {
-      case (game, action) => game.takeTurn(action)
-    }
+    (gameE, moveE).mapN((game, action) => game.takeTurn(action))
   }
 
-  private def runTpsMove(move: TpsMove): Task[Response] =
+  private def runTpsMove(move: TpsMove): IO[Response[IO]] =
     takeTurn(move)
       .fold(
         err => BadRequest(Json.obj("errors" -> err.toList.toVector.asJson)),
         ok => Ok(ok.asJson)
       )
 
-  val tpsService = HttpService {
-    case req @ POST -> Root / "tpsMove" =>
-      req.as(jsonOf[TpsMove]).flatMap(runTpsMove)
+  val tpsService = HttpRoutes.of[IO] { case req @ POST -> Root / "tpsMove" =>
+    req.as[TpsMove].flatMap(runTpsMove)
   }
 
-  implicit val gameEncoder: Encoder[Game] = Encoder[String].contramap(game => game.toTps)
-  implicit def moveResultEncoder[A: Encoder]: Encoder[MoveResult[A]] = deriveEncoder
+  private implicit val tpsMoveDecoder: Decoder[TpsMove] = deriveDecoder
+  private implicit val gameEncoder: Encoder[Game] = Encoder[String].contramap(game => game.toTps)
+  @nowarn("msg=never used")
+  private implicit def moveResultEncoder[A: Encoder]: Encoder[MoveResult[A]] = {
+    import io.circe.generic.auto._
+    deriveEncoder
+  }
 }

@@ -7,12 +7,7 @@ import com.github.daenyth.taklib.RuleSet.GameRule
 import scala.annotation.tailrec
 import scalax.collection.GraphEdge.UnDiEdge
 import scalax.collection.immutable.Graph
-import cats.instances.int._
-import cats.instances.option._
-import cats.syntax.either._
-import cats.syntax.order._
-import cats.syntax.list._
-import cats.syntax.semigroup._
+import cats.syntax.all._
 import cats.{Semigroup, Eq => Equal}
 import cats.data.NonEmptyList
 import cats.kernel.Comparison.{EqualTo, GreaterThan, LessThan}

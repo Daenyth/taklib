@@ -2,21 +2,22 @@ package com.github.daenyth.taklib
 
 import com.github.daenyth.taklib.GameEndResult._
 import com.github.daenyth.taklib.PtnParser.PtnHeaders
-import org.scalatest.{FlatSpec, Matchers}
-import cats.scalatest.EitherValues
+import org.scalatest.EitherValues
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 import scala.io.Source
 
 object PtnParserTest {
   def readPtn(ptnFileName: String): String =
-    Source.fromResource(s"ptn/$ptnFileName.ptn").getLines.mkString("\n")
+    Source.fromResource(s"ptn/$ptnFileName.ptn").getLines().mkString("\n")
 
   def parsePtn(ptn: String): Either[String, (PtnHeaders, MoveResult[Game])] =
     PtnParser.parseEither(PtnParser.ptn(DefaultRules), ptn)
 
 }
 
-class PtnParserTest extends FlatSpec with Matchers with EitherValues with MoveResultValues {
+class PtnParserTest extends AnyFlatSpec with Matchers with EitherValues with MoveResultValues {
   import PtnParserTest._
 
   "BoardIndex names" should "round trip ptn parsing" in {
@@ -49,16 +50,16 @@ class PtnParserTest extends FlatSpec with Matchers with EitherValues with MoveRe
   "An 8x8 game" should "work" in {
     val ptn = readPtn("8x8")
     val (_, result: MoveResult[Game]) = parsePtn(ptn).value
-    result should matchPattern {
-      case GameOver(RoadWin(White), _) => ()
+    result should matchPattern { case GameOver(RoadWin(White), _) =>
+      ()
     }
   }
 
   "A game with annotation comments" should "parse correctly" in {
     val ptn = readPtn("annot1")
     val (_, result) = parsePtn(ptn).value
-    result should matchPattern {
-      case GameOver(RoadWin(White), _) => ()
+    result should matchPattern { case GameOver(RoadWin(White), _) =>
+      ()
     }
   }
 }

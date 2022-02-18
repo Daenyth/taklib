@@ -5,13 +5,13 @@ import com.github.daenyth.taklib.Implicits.RichParsing
 import com.github.daenyth.taklib._
 
 import scala.util.parsing.combinator.RegexParsers
+import scala.annotation.nowarn
 
-/**
- * Playtak protocol encoding/decoding between the wire
- * representation (string) and in-library representation (case classes)
- *
- * See PlaytakCodec#encode and PlaytakCodec#decode
- */
+/** Playtak protocol encoding/decoding between the wire representation (string) and in-library
+  * representation (case classes)
+  *
+  * See PlaytakCodec#encode and PlaytakCodec#decode
+  */
 object PlaytakCodec {
   def encode(outgoing: Playtak.Outgoing): String =
     Outgoing.encode(outgoing)
@@ -26,9 +26,8 @@ object PlaytakCodec {
 
     import Playtak.Incoming._
 
-    val client: Parser[Client] = "Client" ~ "([A-Za-z-.0-9]{4,15})".r ^^ {
-      case _ ~ s =>
-        Client(s)
+    val client: Parser[Client] = "Client" ~ "([A-Za-z-.0-9]{4,15})".r ^^ { case _ ~ s =>
+      Client(s)
     }
 
     val msg: Parser[String] = """[^\n\r]{1,256}""".r
@@ -48,9 +47,8 @@ object PlaytakCodec {
     def simpleGameMessage[A](str: String, gameMsg: GameNumber => A): Parser[A] =
       gameNumber <~ str ^^ gameMsg
 
-    val register: Parser[Register] = "Register" ~> username ~ email ^^ {
-      case username ~ email =>
-        Register(username, email)
+    val register: Parser[Register] = "Register" ~> username ~ email ^^ { case username ~ email =>
+      Register(username, email)
     }
     val userLogin: Parser[UserLogin] = "Login" ~> username ~ password ^^ {
       case username ~ password =>
@@ -63,7 +61,7 @@ object PlaytakCodec {
         val asPlayer = color match {
           case "W" => Some(White)
           case "B" => Some(Black)
-          case _ => None
+          case _   => None
         }
         Seek(size, time, increment, asPlayer)
     }
@@ -75,7 +73,7 @@ object PlaytakCodec {
         val playStone = stoneType match {
           case "C" => PlayCapstone(idx)
           case "W" => PlayStanding(idx)
-          case _ => PlayFlat(idx)
+          case _   => PlayFlat(idx)
         }
         Place(gameNumber, playStone)
     }
@@ -101,8 +99,8 @@ object PlaytakCodec {
     val shout: Parser[Shout] = "Shout" ~> msg ^^ Shout
     val joinRoom: Parser[JoinRoom] = "JoinRoom" ~> roomName ^^ JoinRoom
     val leaveRoom: Parser[LeaveRoom] = "LeaveRoom" ~> roomName ^^ LeaveRoom
-    val shoutRoom: Parser[ShoutRoom] = "ShoutRoom" ~> roomName ~ msg ^^ {
-      case room ~ msg => ShoutRoom(room, msg)
+    val shoutRoom: Parser[ShoutRoom] = "ShoutRoom" ~> roomName ~ msg ^^ { case room ~ msg =>
+      ShoutRoom(room, msg)
     }
     val tell: Parser[Tell] = "Tell" ~> username ~ msg ^^ { case user ~ msg => Tell(user, msg) }
     val ping: Parser[Ping.type] = "^PING$".r ^^^ Ping
@@ -119,21 +117,21 @@ object PlaytakCodec {
     def encode(outgoing: Playtak.Outgoing): String = {
       import Playtak.Outgoing._
       outgoing match {
-        case Welcome => "Welcome!"
-        case LoginOrRegisterNow => "Login or Register"
-        case WelcomeUser(username) => s"Welcome $username"
-        case ge: GameEvent => encodeGameEvent(ge)
-        case Shout(username, msg) => s"Shout <$username> $msg"
-        case RoomJoined(name) => s"Joined room $name"
-        case RoomLeft(name) => s"Left room $name"
+        case Welcome                        => "Welcome!"
+        case LoginOrRegisterNow             => "Login or Register"
+        case WelcomeUser(username)          => s"Welcome $username"
+        case ge: GameEvent                  => encodeGameEvent(ge)
+        case Shout(username, msg)           => s"Shout <$username> $msg"
+        case RoomJoined(name)               => s"Joined room $name"
+        case RoomLeft(name)                 => s"Left room $name"
         case ShoutRoom(name, username, msg) => s"ShoutRoom $name <$username> $msg"
-        case Tell(username, msg) => s"Tell <$username> $msg"
-        case Told(username, msg) => s"Told <$username> $msg"
-        case ServerMessage(msg) => s"Message $msg"
-        case Error(msg) => s"Error $msg"
-        case OnlineUsers(count) => s"Online $count"
-        case NOK => "NOK"
-        case OK => "OK"
+        case Tell(username, msg)            => s"Tell <$username> $msg"
+        case Told(username, msg)            => s"Told <$username> $msg"
+        case ServerMessage(msg)             => s"Message $msg"
+        case Error(msg)                     => s"Error $msg"
+        case OnlineUsers(count)             => s"Online $count"
+        case NOK                            => "NOK"
+        case OK                             => "OK"
       }
     }
 
@@ -155,10 +153,12 @@ object PlaytakCodec {
           s"Game Start $gameNumber $size $whitePlayerusername vs $blackPlayerusername $yourColor"
         case Place(gameNumber, playStone) =>
           import Stone._
+          // TODO this is just totally broken
+          @nowarn
           val stoneType = playStone.stone match {
-            case _: Capstone => "C"
+            case _: Capstone      => "C"
             case _: StandingStone => "W"
-            case _: FlatStone => ""
+            case _: FlatStone     => ""
           }
           s"Game#$gameNumber P ${playStone.at.name} $stoneType"
         case m: Move =>
@@ -175,7 +175,7 @@ object PlaytakCodec {
             case DoubleRoad =>
               "R-R" // Not actually supported by playtak or default rules, but different result sets can treat it differently.
             case FlatWin(player) => player.fold("0-F", "F-0")
-            case Draw => "1/2-1/2"
+            case Draw            => "1/2-1/2"
             case WinByResignation(player) =>
               player.fold("0-1", "1-0") // Again not supported by playtak; this is PTN format
           }
